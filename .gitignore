@@ -21,6 +21,10 @@ venv/
 # the VirtualBox VM folder, not here)
 backups/
 
+# Off-site backup config — holds the Samba password + HA token (DPAPI-encrypted,
+# machine-specific). MUST NEVER be committed.
+offsite-config.xml
+
 # Windows
 Thumbs.db
 Desktop.ini

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Robot — Recovery & Off-site Backup</title>
+<style>
+  :root {
+    --bg: #0f1216; --card: #171c22; --line: #262e38;
+    --text: #e8edf2; --muted: #9aa7b4; --accent: #5ec8a8; --warn: #e0a35e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 20px 64px;
+    font: 16px/1.6 -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    max-width: 680px; margin-inline: auto;
+  }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+  h2 { font-size: 18px; margin: 32px 0 10px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 20px; margin: 12px 0; }
+  ol { padding-left: 22px; }
+  ol li { margin: 10px 0; }
+  .lead { color: var(--muted); }
+  code { background: #0b0e12; padding: 1px 6px; border-radius: 5px; font-size: 13.5px; }
+  b { color: #fff; }
+  .pill { display:inline-block; font-size:12px; padding:2px 9px; border-radius:20px; background:#22303a; color:var(--accent); margin-bottom:6px; letter-spacing:.03em; }
+  .warnbox { border-color: var(--warn); }
+  .warnbox b { color: var(--warn); }
+  .foot { color: var(--muted); font-size: 14px; margin-top: 30px; }
+</style>
+</head>
+<body>
+  <h1>🛟 Recovery &amp; Off-site Backup</h1>
+  <p class="sub">For the worst case: the laptop is lost, stolen, or dies. (2026-06-25)</p>
+
+  <div class="card">
+    <p>The everyday <b>Backup Robot</b> menu protects you against <i>mistakes</i> — roll back in place.
+    But its snapshots live on this laptop, so they can't save you if the whole laptop is gone.
+    For that you need a copy of your Home Assistant setup <b>off the laptop</b>. Set that up once (below),
+    and Backup Robot will keep it current automatically.</p>
+  </div>
+
+  <h2>Part 1 — Set up off-site backup (do this once)</h2>
+  <div class="card">
+    <span class="pill">In the Home Assistant browser</span>
+    <ol>
+      <li><b>Install the Samba add-on.</b> Settings → Add-ons → Add-on Store → <b>Samba share</b> → Install.
+          In its Configuration, set a <b>username and password</b>, then Start it. (This lets the laptop reach HA's backup files.)</li>
+      <li><b>Optional — create a token</b> for fresh-on-press backups. Click your name (bottom-left) → Security →
+          <b>Long-lived access tokens</b> → Create → copy it. (Skip this and HA's automatic backups are used instead.)</li>
+    </ol>
+  </div>
+  <div class="card">
+    <span class="pill">In the Backup Robot menu</span>
+    <ol>
+      <li>Double-click <b>Backup Robot</b> → choose <b>4 (Off-site)</b>.</li>
+      <li>Enter: your HA IP, an <b>off-site folder</b> (use a OneDrive folder like
+          <code>C:\Users\Dev\OneDrive\RobotBackups</code> so it leaves the laptop), the Samba username/password,
+          and paste the token (or press Enter to skip).</li>
+      <li>If you skipped the token: turn on HA's <b>automatic backups</b> (Settings → System → Backups) so a recent one always exists.</li>
+      <li>Press <b>1 (Backup)</b> once, then check your off-site folder — you should see a <code>.tar</code> file appear.</li>
+    </ol>
+  </div>
+  <p class="lead">From then on, every <b>Backup</b> also drops a fresh copy of your HA setup into that off-site folder.</p>
+
+  <h2>Part 2 — Rebuild on a new laptop</h2>
+  <div class="card">
+    <ol>
+      <li><b>Install the tools:</b> VirtualBox, Ollama, and Python 3.12.</li>
+      <li><b>Get the code:</b> <code>git clone https://github.com/dan-leif/home-robot</code> into <code>C:\DEV\home-robot</code>.
+          (All the scripts and these pages come back here.)</li>
+      <li><b>Create a fresh Home Assistant VM</b> in VirtualBox (download the HA OS image; bridged network, EFI on).
+          The exact VBoxManage steps are in the project notes.</li>
+      <li><b>Restore your setup:</b> open the new HA, do the short onboarding, then Settings → System → Backups →
+          <b>Upload backup</b> → pick the <code>.tar</code> from your off-site folder → <b>Restore</b>.
+          Your pipeline, the "no follow-ups" prompt, integrations and add-ons all come back.</li>
+      <li><b>Bring back the brain:</b> <code>ollama pull llama3.1:8b</code>; set <code>OLLAMA_HOST=0.0.0.0</code> and
+          <code>OLLAMA_KEEP_ALIVE=-1</code>; allow firewall port 11434.</li>
+      <li><b>Bring back the voice:</b> re-download the two Kokoro files into <code>kokoro\</code>; allow firewall port 10200.</li>
+      <li><b>Fix the address</b> if the new PC's IP changed: update the HA Ollama integration to point at the new host IP.</li>
+      <li>Double-click <b>Start Robot</b>. Done.</li>
+    </ol>
+  </div>
+
+  <div class="card warnbox">
+    <p><b>The one thing that must be off-site</b> is your HA backup <code>.tar</code> (Part 1). Everything else — code,
+    the AI model, the voice files — is on GitHub or free to re-download. Keep this page; it lives on GitHub, so it survives too.</p>
+  </div>
+
+  <p class="foot">Everything stays free &amp; local. The off-site copy uses a folder you already sync (OneDrive) or a USB drive — no paid service.</p>
+</body>
+</html>
