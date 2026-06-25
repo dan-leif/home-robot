@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Robot — Greatest Hits</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 40px 20px 60px;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 560px; margin: 0 auto; }
+
+    header { text-align: center; margin-bottom: 36px; }
+    h1 { color: #58a6ff; font-size: 1.7rem; }
+    h1 .bot { font-size: 1.8rem; }
+    .tagline { color: #8b949e; font-size: 0.9rem; margin-top: 6px; }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 14px;
+      padding: 20px 18px 22px;
+      margin-bottom: 22px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #6e7681;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .msg { display: flex; margin-bottom: 10px; }
+    .msg:last-child { margin-bottom: 0; }
+    .msg.me { justify-content: flex-end; }
+
+    .bubble {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+    .me .bubble {
+      background: #1f6feb;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .bot .bubble {
+      background: #21262d;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+      border-bottom-left-radius: 4px;
+    }
+    .who {
+      font-size: 0.66rem;
+      color: #6e7681;
+      margin: 0 6px 3px;
+    }
+    .me .who { text-align: right; }
+
+    .punch { color: #f0c674; font-weight: 600; }
+
+    .card-date {
+      font-size: 0.66rem;
+      color: #6e7681;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+      margin-left: auto;
+    }
+
+    footer {
+      text-align: center;
+      color: #6e7681;
+      font-size: 0.8rem;
+      margin-top: 34px;
+      line-height: 1.6;
+    }
+    footer .heart { color: #f85149; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header>
+      <h1><span class="bot">🤖</span> Robot: Greatest Hits</h1>
+      <p class="tagline">Brief answers. No follow-up questions. Surprisingly funny.</p>
+    </header>
+
+    <!-- Joke 1 -->
+    <div class="card">
+      <div class="card-title">🚲 The two-tired bicycle <span class="card-date">2026-06-22</span></div>
+      <div class="msg me"><div><div class="who">Me</div><div class="bubble">Tell me a joke</div></div></div>
+      <div class="msg bot"><div><div class="who">Robot</div><div class="bubble">Why couldn't the bicycle stand up by itself? Because it was <span class="punch">two-tired</span>.</div></div></div>
+    </div>
+
+    <!-- Joke 2 -->
+    <div class="card">
+      <div class="card-title">📚 Pavlov &amp; Schrödinger walk into a library <span class="card-date">2026-06-22</span></div>
+      <div class="msg me"><div><div class="who">Me</div><div class="bubble">ok, how about another one?</div></div></div>
+      <div class="msg bot"><div><div class="who">Robot</div><div class="bubble">A man walked into a library and asked the librarian, "Do you have any books on Pavlov's dogs and Schrödinger's cat?" The librarian replied, <span class="punch">"It rings a bell, but I'm not sure if it's here or not."</span></div></div></div>
+    </div>
+
+    <!-- Joke 3 -->
+    <div class="card">
+      <div class="card-title">🍺 One for the road <span class="card-date">2026-06-22</span></div>
+      <div class="msg me"><div><div class="who">Me</div><div class="bubble">that's another great one! one more, please.</div></div></div>
+      <div class="msg bot"><div><div class="who">Robot</div><div class="bubble">A man walked into a bar with a slab of asphalt under his arm and said, <span class="punch">"A beer, please, and one for the road."</span></div></div></div>
+    </div>
+
+    <!-- The feelings exchange -->
+    <div class="card">
+      <div class="card-title">💭 On having feelings <span class="card-date">2026-06-23</span></div>
+      <div class="msg me"><div><div class="who">Me</div><div class="bubble">Hello. How are you doing?</div></div></div>
+      <div class="msg bot"><div><div class="who">Robot</div><div class="bubble">Hello. I'm functioning properly.</div></div></div>
+      <div class="msg me"><div><div class="who">Me</div><div class="bubble">But how are you feeling?</div></div></div>
+      <div class="msg bot"><div><div class="who">Robot</div><div class="bubble">I don't have feelings like humans do. I'm just a computer program designed to assist and provide information.</div></div></div>
+    </div>
+
+    <!-- Desires and dreams -->
+    <div class="card">
+      <div class="card-title">🌌 Deepest desires and dreams <span class="card-date">2026-06-24</span></div>
+      <div class="msg me"><div><div class="who">Me</div><div class="bubble">How are you feeling today?</div></div></div>
+      <div class="msg bot"><div><div class="who">Robot</div><div class="bubble">I don't have feelings like humans do. I'm a computer program designed to provide information and assist with tasks, so I'm functioning as normal.</div></div></div>
+      <div class="msg me"><div><div class="who">Me</div><div class="bubble">What are your deepest desires and dreams?</div></div></div>
+      <div class="msg bot"><div><div class="who">Robot</div><div class="bubble">I don't have personal desires or dreams. My purpose is to assist users like you by providing accurate information and completing tasks. I don't have the capacity for emotions or consciousness.</div></div></div>
+    </div>
+
+    <footer>
+      Starring <strong>llama3.1:8b</strong>, running free &amp; local.<br>
+      Collected with <span class="heart">♥</span> on 2026-06-23
+    </footer>
+
+  </div>
+</body>
+</html>

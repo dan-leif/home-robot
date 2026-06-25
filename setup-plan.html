@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Assistant Setup Plan</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      background: #141413;
+      color: #e8e6df;
+      padding: 2rem 1rem;
+    }
+
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    header p {
+      color: #888780;
+      font-size: 14px;
+    }
+
+    .legend {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      font-size: 13px;
+      color: #888780;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-me   { background: #1D9E75; }
+    .dot-you  { background: #7F77DD; }
+
+    .phase-block {
+      margin-bottom: 2.5rem;
+    }
+
+    .phase-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #888780;
+      margin-bottom: 0.75rem;
+      padding-left: 2px;
+    }
+
+    .step {
+      display: flex;
+      gap: 14px;
+      background: #1e1e1c;
+      border: 0.5px solid #2e2e2b;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+    }
+
+    .step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-num.me  { background: #085041; color: #5DCAA5; }
+    .step-num.you { background: #26215C; color: #AFA9EC; }
+
+    .step-body { flex: 1; }
+
+    .step-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 9px;
+      border-radius: 6px;
+      margin-bottom: 5px;
+    }
+
+    .tag-me  { background: #085041; color: #5DCAA5; }
+    .tag-you { background: #26215C; color: #AFA9EC; }
+
+    .step-label {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+
+    .step-desc {
+      font-size: 13px;
+      color: #888780;
+      line-height: 1.55;
+    }
+
+    code {
+      font-family: "Consolas", "Cascadia Code", "Fira Mono", monospace;
+      font-size: 12px;
+      background: #2a2a27;
+      border: 0.5px solid #3a3a37;
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: #AFA9EC;
+    }
+
+    hr {
+      border: none;
+      border-top: 0.5px solid #2e2e2b;
+      margin: 0.5rem 0 2rem;
+    }
+
+    .note {
+      background: #1e1e1c;
+      border-left: 3px solid #1D9E75;
+      border-radius: 0 8px 8px 0;
+      border-top: 0.5px solid #2e2e2b;
+      border-right: 0.5px solid #2e2e2b;
+      border-bottom: 0.5px solid #2e2e2b;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #888780;
+      margin-top: 0.5rem;
+      line-height: 1.55;
+    }
+
+    .note strong {
+      color: #e8e6df;
+      font-weight: 600;
+    }
+
+    .step.done {
+      opacity: 0.55;
+      border-color: #1D9E75;
+    }
+
+    .step.done .step-num {
+      background: #085041;
+      color: #5DCAA5;
+    }
+
+    .step.next {
+      border-color: #7F77DD;
+      border-width: 1px;
+    }
+
+    .status-banner {
+      background: #1e1e1c;
+      border: 0.5px solid #2e2e2b;
+      border-left: 3px solid #7F77DD;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      font-size: 13px;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    .status-banner strong { color: #e8e6df; }
+    .status-banner a { color: #AFA9EC; }
+
+    footer {
+      margin-top: 3rem;
+      font-size: 12px;
+      color: #888780;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>Home Assistant voice assistant — setup plan</h1>
+    <p>Local AI on your laptop (Windows + VirtualBox + Ollama). Test by typing before buying any hardware.</p>
+  </header>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot dot-me"></div> Claude does this (commands run for you)</div>
+    <div class="legend-item"><div class="legend-dot dot-you"></div> You do this (browser / UI steps)</div>
+  </div>
+
+  <div class="status-banner">
+    <strong>Paused 2026-06-22 — pick up at step 7.</strong> Phases 1 and 2 are complete.
+    <code>llama3.1:8b</code> may still be downloading in the background — check with <code>ollama list</code>.
+    Resume at <a href="http://homeassistant.local:8123/onboarding.html">http://homeassistant.local:8123/onboarding.html</a>.
+  </div>
+
+  <!-- Phase 1 -->
+  <div class="phase-block">
+    <div class="phase-label">Phase 1 — install dependencies</div>
+
+    <div class="step done">
+      <div class="step-num me">✓</div>
+      <div class="step-body">
+        <span class="step-tag tag-me">Done</span>
+        <p class="step-label">Download &amp; install VirtualBox</p>
+        <p class="step-desc">VirtualBox 7.2.10 installed at <code>C:\Program Files\Oracle\VirtualBox\</code></p>
+      </div>
+    </div>
+
+    <div class="step done">
+      <div class="step-num me">✓</div>
+      <div class="step-body">
+        <span class="step-tag tag-me">Done</span>
+        <p class="step-label">Download Home Assistant OS image</p>
+        <p class="step-desc">HA OS 18.0 extracted to <code>C:\DEV\home-robot\haos_ova-18.0.vdi</code></p>
+      </div>
+    </div>
+
+    <div class="step done">
+      <div class="step-num me">✓</div>
+      <div class="step-body">
+        <span class="step-tag tag-me">Done</span>
+        <p class="step-label">Install Ollama on Windows</p>
+        <p class="step-desc">Ollama 0.30.9 installed. <code>OLLAMA_HOST=0.0.0.0</code> set, firewall rule open on port <code>11434</code>.</p>
+      </div>
+    </div>
+
+    <div class="step done">
+      <div class="step-num me">✓</div>
+      <div class="step-body">
+        <span class="step-tag tag-me">In progress</span>
+        <p class="step-label">Pull the AI model</p>
+        <p class="step-desc"><code>ollama pull llama3.1:8b</code> — 4.9 GB total, was left downloading. Verify with <code>ollama list</code>. If stopped, re-run the pull command.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Phase 2 -->
+  <div class="phase-block">
+    <div class="phase-label">Phase 2 — create the VM</div>
+
+    <div class="step done">
+      <div class="step-num me">✓</div>
+      <div class="step-body">
+        <span class="step-tag tag-me">Done</span>
+        <p class="step-label">Create and configure the VirtualBox VM</p>
+        <p class="step-desc">VM "HomeAssistant" created: 4 GB RAM, 2 CPUs, EFI, SATA, bridged to "RZ616 Wi-Fi 6E 160MHz".</p>
+      </div>
+    </div>
+
+    <div class="step done">
+      <div class="step-num me">✓</div>
+      <div class="step-body">
+        <span class="step-tag tag-me">Done</span>
+        <p class="step-label">Start the VM and verify it boots</p>
+        <p class="step-desc">VM running headless. HA booted and is reachable at <code>http://homeassistant.local:8123</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Phase 3 -->
+  <div class="phase-block">
+    <div class="phase-label">Phase 3 — Home Assistant setup (browser)</div>
+
+    <div class="step next">
+      <div class="step-num you">7</div>
+      <div class="step-body">
+        <span class="step-tag tag-you">Up next</span>
+        <p class="step-label">Complete the HA onboarding wizard</p>
+        <p class="step-desc">Open <a href="http://homeassistant.local:8123/onboarding.html" style="color:#AFA9EC">http://homeassistant.local:8123/onboarding.html</a> — create your admin account, set location and timezone.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num you">8</div>
+      <div class="step-body">
+        <span class="step-tag tag-you">You do this</span>
+        <p class="step-label">Add the Ollama integration</p>
+        <p class="step-desc">Settings → Integrations → Add Integration → search "Ollama". Point it at <code>http://&lt;host-IP&gt;:11434</code> and select <code>llama3.1:8b</code>. Claude will provide the exact host IP.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num you">9</div>
+      <div class="step-body">
+        <span class="step-tag tag-you">You do this</span>
+        <p class="step-label">Configure the Assist pipeline</p>
+        <p class="step-desc">Settings → Voice Assistants → create a new pipeline, set Ollama as the conversation agent. Paste the system prompt Claude writes for you — this is what enforces brief answers and no follow-up questions.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num you">10</div>
+      <div class="step-body">
+        <span class="step-tag tag-you">You do this</span>
+        <p class="step-label">Test by typing in the Assist chat</p>
+        <p class="step-desc">Developer Tools → Assist — type a question and confirm the assistant answers briefly without asking a follow-up. That's a working system.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>Generated by Claude &bull; C:\DEV\home-robot\setup-plan.html</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# VirtualBox disk images — large, download separately
+*.vdi
+*.vdi.zip
+
+# Kokoro TTS model files — large, download separately
+# See kokoro/README section for download instructions
+kokoro/*.onnx
+kokoro/*.bin
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Claude Code local settings (machine-specific, no secrets but not project code)
+.claude/settings.local.json
+
+# Windows
+Thumbs.db
+Desktop.ini
