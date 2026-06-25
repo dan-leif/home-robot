@@ -80,6 +80,7 @@ if (Test-Port "localhost" 11434) {
 } else {
     if (Test-Path $OllamaExe) {
         $env:OLLAMA_HOST = "0.0.0.0"
+        $env:OLLAMA_KEEP_ALIVE = "-1"   # pin the model in VRAM so it never pays the cold-reload delay
         Start-Process -FilePath $OllamaExe -ArgumentList "serve" -WindowStyle Hidden
         Write-Ok "Started."
     } else {

@@ -80,7 +80,8 @@
     and <strong>the voice waits for the whole answer</strong> before it starts speaking.
   </div>
 
-  <h2>The fix — three levers</h2>
+  <h2>The plan — two levers</h2>
+  <p class="sub" style="margin-top:-4px">Both attack the delay <em>without</em> touching answer length — answers stay as long as they need to be.</p>
   <ol class="levers">
     <li>
       <strong>Pin the model in memory</strong> — so it never pays the 6.4s reload. Biggest single win.
@@ -88,21 +89,18 @@
     </li>
     <li>
       <strong>Stream the speech</strong> — start talking after the first sentence instead of waiting for the whole answer.
+      Also means longer answers don't feel slower, since you hear the start right away.
       <div class="who you">→ You do it · a setting in the Home Assistant UI</div>
-    </li>
-    <li>
-      <strong>Shorter answers</strong> — less to generate and less to read aloud.
-      <div class="who you">→ You do it · tighten the Robot system prompt ("one or two short sentences")</div>
     </li>
   </ol>
 
-  <h2>One choice to make: which brain?</h2>
-  <p class="sub" style="margin-top:-4px">Pinning + streaming + short answers matter more than this — but if you want extra speed:</p>
+  <h2>On hold: a faster brain?</h2>
+  <p class="sub" style="margin-top:-4px">Not changing the model now — pinning + streaming come first. Keeping these in mind if we want extra speed later:</p>
 
   <div class="pick rec">
-    <span class="star">★ Recommended</span>
+    <span class="star">★ Sticking with this for now</span>
     <h3>Keep llama3.1:8b</h3>
-    Best answer quality. Once pinned it's ~1.5s. The reload was the real problem, not the model. Least effort.
+    Best answer quality. Once pinned it's ~1.5s. The reload was the real problem, not the model. No change needed.
   </div>
   <div class="pick">
     <h3>Switch to llama3.2:3b</h3>
@@ -115,7 +113,7 @@
 
   <p class="foot">
     Everything stays <strong>free &amp; local</strong> — no paid APIs.<br>
-    Voice (Kokoro "Sky") is already done and sounds great. Next session = apply these three levers + pick a brain.
+    Voice (Kokoro "Sky") is already done and sounds great. Next session = apply these two levers; model swap stays parked.
   </p>
 </body>
 </html>

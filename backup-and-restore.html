@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Robot — Backup & Restore</title>
+<style>
+  :root {
+    --bg: #0f1216; --card: #171c22; --line: #262e38;
+    --text: #e8edf2; --muted: #9aa7b4; --accent: #5ec8a8;
+    --warn: #e0a35e; --good: #5ec8a8; --bad: #e06a6a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 18px 64px;
+    font: 16px/1.55 -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    max-width: 820px; margin-inline: auto;
+  }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+  h2 { font-size: 18px; margin: 34px 0 12px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 16px 20px; margin: 12px 0;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  .dot { font-weight: 700; }
+  .dot.g { color: var(--good); }
+  .dot.w { color: var(--warn); }
+  code { background: #0b0e12; padding: 1px 6px; border-radius: 5px; font-size: 14px; }
+  pre { background: #0b0e12; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: 14px; margin: 10px 0; }
+  pre code { background: none; padding: 0; }
+  .tag { display:inline-block; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .warn-box { border-color: var(--warn); }
+  .warn-box strong { color: var(--warn); }
+  .foot { color: var(--muted); font-size: 14px; margin-top: 30px; }
+  strong { color: #fff; }
+  .lead { color: var(--muted); }
+</style>
+</head>
+<body>
+  <h1>💾 Backing up & restoring the robot</h1>
+  <p class="sub">Every moving part, where it's saved, and how to get it back. (2026-06-25)</p>
+
+  <div class="card">
+    <p style="margin-top:0" class="lead">The robot is made of two kinds of things:</p>
+    <p style="margin-bottom:0"><strong>Code</strong> (scripts, web pages, the Kokoro server) is backed up by <strong>git + GitHub</strong>.
+    <strong>State</strong> (the whole Home Assistant setup inside the VM) is backed up by a <strong>VirtualBox snapshot</strong>.
+    Everything else is either documented or just re-downloadable. One script — <code>backup-restore.ps1</code> — handles the snapshot and writes down the rest.</p>
+  </div>
+
+  <h2>What each piece needs</h2>
+  <table>
+    <thead><tr><th>Piece</th><th>How it's backed up</th><th>How to restore</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="dot g">●</span> <strong>Scripts &amp; web pages</strong><br><span class="lead">start/stop/backup .ps1, .html</span></td>
+        <td>git, pushed to GitHub<br>(<code>github.com/dan-leif/home-robot</code>)</td>
+        <td>Already versioned — <code>git checkout</code> any old version, or re-clone the repo.</td>
+      </tr>
+      <tr>
+        <td><span class="dot g">●</span> <strong>Kokoro server code</strong></td>
+        <td>git (the <code>.py</code> + launcher)</td>
+        <td>In the repo. The voice model files re-download (see below).</td>
+      </tr>
+      <tr>
+        <td><span class="dot w">●</span> <strong>The VM</strong><br><span class="lead">= ALL your Home Assistant config: pipeline, system prompt, integrations, add-ons</span></td>
+        <td><strong>VirtualBox snapshot</strong><br>(<code>backup-restore.ps1 backup</code>)<br>Optional extra: HA's own Settings → System → Backups (a portable <code>.tar</code>).</td>
+        <td><code>backup-restore.ps1 restore</code> rolls the VM back to a snapshot. This is the big one — it's the only part with no other copy.</td>
+      </tr>
+      <tr>
+        <td><span class="dot g">●</span> <strong>The AI model</strong><br><span class="lead">llama3.1:8b</span></td>
+        <td>Not saved (it's big) — but free to re-pull.</td>
+        <td><code>ollama pull llama3.1:8b</code></td>
+      </tr>
+      <tr>
+        <td><span class="dot g">●</span> <strong>Kokoro voice files</strong><br><span class="lead">.onnx / .bin</span></td>
+        <td>Not saved (big) — re-downloadable.</td>
+        <td>Re-download from the kokoro-onnx GitHub release into <code>kokoro\</code>.</td>
+      </tr>
+      <tr>
+        <td><span class="dot g">●</span> <strong>Settings &amp; firewall</strong><br><span class="lead">OLLAMA_KEEP_ALIVE, OLLAMA_HOST, port rules</span></td>
+        <td>Written into the backup <strong>manifest</strong>, and baked into the scripts.</td>
+        <td>Re-apply the handful of values from the manifest (or just re-run setup).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>The one script: <code>backup-restore.ps1</code></h2>
+  <p class="lead">It does three things. The easiest backup is just double-clicking <strong>“Backup Robot”</strong> on the desktop.</p>
+
+  <div class="card">
+    <span class="tag">Back up — safe to run anytime, even with everything on</span>
+    <pre><code>powershell -ExecutionPolicy Bypass -File backup-restore.ps1 backup</code></pre>
+    Takes a VM snapshot and saves a manifest into <code>backups\</code>. (Or double-click <strong>Backup Robot</strong>.)
+  </div>
+
+  <div class="card">
+    <span class="tag">See what you've got</span>
+    <pre><code>powershell -ExecutionPolicy Bypass -File backup-restore.ps1 list</code></pre>
+    Lists every snapshot and every saved manifest.
+  </div>
+
+  <div class="card warn-box">
+    <span class="tag">Restore — <strong>the only step that throws away the current VM</strong></span>
+    <pre><code>powershell -ExecutionPolicy Bypass -File backup-restore.ps1 restore
+powershell -ExecutionPolicy Bypass -File backup-restore.ps1 restore robot-20260625-143000</code></pre>
+    Rolls the VM back to the latest snapshot (or a named one). It <strong>refuses while the VM is on</strong> —
+    click <strong>Stop Robot</strong> first, then run restore, then <strong>Start Robot</strong>.
+    With no name it uses the most recent snapshot.
+  </div>
+
+  <h2>A good habit</h2>
+  <div class="card">
+    Run a <strong>backup before any big change</strong> — before installing an add-on, switching the model, or editing HA config.
+    If it breaks, <code>restore</code> puts you back in a minute. Snapshots are cheap (they only store what changed),
+    so taking them often costs almost nothing.
+  </div>
+
+  <p class="foot">
+    Everything stays <strong>free &amp; local</strong>. Code lives in git/GitHub; the VM lives in VirtualBox snapshots;
+    the big model/voice files re-download for free. Nothing here depends on a paid service.
+  </p>
+</body>
+</html>
