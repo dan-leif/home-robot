@@ -133,6 +133,29 @@
       border-radius: 20px;
       padding: 5px 16px;
     }
+
+    /* ---------- Running it & keeping it safe ---------- */
+    .ops {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 14px;
+    }
+    .launchers { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 22px; }
+    .launch {
+      display: flex; align-items: center; gap: 10px;
+      background: #0d1117; border: 1px solid #30363d; border-radius: 10px;
+      padding: 10px 16px; font-size: 0.9rem; color: #e6edf3; font-weight: 600;
+    }
+    .launch .tri { color: #58a6ff; font-size: 1rem; }
+    .launch .sq  { width: 13px; height: 13px; border-radius: 3px; background: #e04949; flex-shrink: 0; }
+    .ops-flow { display: flex; flex-direction: column; gap: 9px; max-width: 540px; margin: 0 auto; }
+    .ops-row { display: flex; align-items: baseline; gap: 12px; font-size: 0.85rem; color: #c9d1d9; line-height: 1.4; }
+    .ops-row .k { color: #3fb950; font-weight: 700; flex-shrink: 0; width: 54px; }
+    .ops-note { text-align: center; color: #8b949e; font-size: 0.82rem; margin-top: 20px; }
+    .ops-note b { color: #c9d1d9; }
+    .ops-note .pending { color: #d6913b; }
   </style>
 </head>
 <body>
@@ -170,6 +193,26 @@
     <div class="laptop-tag">💻 Everything runs on my laptop · 100% free · no internet needed</div>
   </div>
 
+  <!-- ===== Running it & keeping it safe ===== -->
+  <div class="section-label">Running it &amp; keeping it safe</div>
+
+  <div class="ops">
+    <div class="launchers">
+      <div class="launch"><span class="tri">▶</span> Start Robot</div>
+      <div class="launch"><span class="sq"></span> Stop Robot</div>
+      <div class="launch">🛡️ Backup Robot</div>
+    </div>
+    <div class="ops-flow">
+      <div class="ops-row"><span class="k">Start</span><span>one double-click brings the brain, voice &amp; Home Assistant online.</span></div>
+      <div class="ops-row"><span class="k">Stop</span><span>shuts it all down to free the laptop (GPU memory + CPU) for other things.</span></div>
+      <div class="ops-row"><span class="k">Backup</span><span>saves a restore point — a snapshot <em>on</em> the laptop (undo mistakes) plus a copy <em>off</em> the laptop (survive losing it).</span></div>
+    </div>
+    <div class="ops-note">
+      My <b>code</b> is also saved on <b>GitHub</b> automatically.
+      <span class="pending">Off-laptop backup copy: setup still pending.</span>
+    </div>
+  </div>
+
   <!-- ===== Roadmap ===== -->
   <div class="roadmap">
     <div class="section-label">Then add one piece at a time — testing each before the next</div>
@@ -183,7 +226,7 @@
     <div class="step next">
       <div class="step-num">⚡</div>
       <div class="step-icon">⏱️</div>
-      <div class="step-text">Make it feel real-time &nbsp;←&nbsp; up next<span>Pin the model in memory, speak before the answer's finished, keep answers short</span></div>
+      <div class="step-text">Make it feel real-time &nbsp;←&nbsp; up next<span>Model now stays loaded in memory ✓ &nbsp;·&nbsp; next: start speaking before the answer's finished (streaming) &nbsp;·&nbsp; answers stay full-length</span></div>
     </div>
 
     <div class="step minor">
