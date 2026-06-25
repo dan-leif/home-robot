@@ -5,14 +5,14 @@
 #      1. Backup        - save the current state as a new backup point
 #      2. View backups  - list your backup points
 #      3. Restore       - choose a backup point and roll back to it
+#      4. Off-site      - one-time setup to copy backups OFF this laptop
 #
-#  (Power users can also run it directly, skipping the menu:
-#      powershell -ExecutionPolicy Bypass -File backup-restore.ps1 backup
-#      powershell -ExecutionPolicy Bypass -File backup-restore.ps1 list )
+#  Backup makes a VirtualBox snapshot (rolls back in place) AND, if off-site is
+#  set up, copies your Home Assistant backup to a folder off this laptop (e.g.
+#  OneDrive / a USB drive) so you can rebuild even if the laptop is lost.
 #
-#  A "backup point" is a VirtualBox snapshot of the Home Assistant VM (which
-#  holds all your HA config) plus a small text note of your settings. Your CODE
-#  is backed up separately by git/GitHub. None of this needs admin rights.
+#  Your CODE is backed up separately by git/GitHub. None of this needs admin.
+#  See backup-recovery.html for the one-time off-site setup + how to rebuild.
 # =============================================================================
 
 param(
@@ -22,12 +22,15 @@ param(
 )
 
 # ----- Config ---------------------------------------------------------------
-$VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
-$VmName     = "HomeAssistant"
-$RepoDir    = "C:\DEV\home-robot"
-$BackupDir  = "C:\DEV\home-robot\backups"   # manifests live here (gitignored)
-$OllamaApi  = "http://localhost:11434"
-$StopWait   = 120                            # seconds to wait for a clean VM shutdown
+$VBoxManage    = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
+$VmName        = "HomeAssistant"
+$RepoDir       = "C:\DEV\home-robot"
+$BackupDir     = "C:\DEV\home-robot\backups"          # manifests live here (gitignored)
+$OffsiteConfig = "C:\DEV\home-robot\offsite-config.xml" # local only, DPAPI-encrypted, gitignored
+$OllamaApi     = "http://localhost:11434"
+$HaPort        = 8123
+$StopWait      = 120        # seconds to wait for a clean VM shutdown
+$OffsiteWait   = 180        # seconds to wait for a fresh HA backup to appear
 # ----------------------------------------------------------------------------
 
 $ErrorActionPreference = "Stop"
@@ -83,6 +86,111 @@ function Stop-VmClean {
     }
     Write-Host ""
     return $false
+}
+
+# ---- Off-site helpers -------------------------------------------------------
+function Unprotect-Secret {
+    param([System.Security.SecureString]$Secure)
+    if (-not $Secure) { return "" }
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)
+    try   { [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
+    finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+}
+
+function Get-OffsiteConfig {
+    if (Test-Path $OffsiteConfig) { try { return Import-Clixml $OffsiteConfig } catch { return $null } }
+    return $null
+}
+
+# One-time setup: collect where/how to copy backups off the laptop and save it
+# locally (secrets DPAPI-encrypted via Export-Clixml; the file is gitignored).
+function Set-OffsiteConfig {
+    Write-Host "`n=== Set up off-site backup (one-time) ===`n" -ForegroundColor Yellow
+    Write-Host "   This copies your Home Assistant backup to a folder OFF this laptop"
+    Write-Host "   (e.g. a OneDrive folder, or a USB drive) each time you press Backup,"
+    Write-Host "   so you can rebuild the robot even if the laptop is lost."
+    Write-Host ""
+    Write-Host "   FIRST, one time in the HA browser (see backup-recovery.html):" -ForegroundColor Gray
+    Write-Host "     - Install the 'Samba share' add-on, set a username + password, Start it." -ForegroundColor Gray
+    Write-Host "     - Optional: create a long-lived token (your profile) for fresh-on-press." -ForegroundColor Gray
+    Write-Host ""
+    $haIp = Read-Host "   Home Assistant IP [192.168.1.188]"
+    if (-not $haIp) { $haIp = "192.168.1.188" }
+    $dest = Read-Host "   Off-site folder (e.g. C:\Users\Dev\OneDrive\RobotBackups)"
+    if (-not $dest) { Write-Warn "No folder given - setup cancelled."; return }
+    $sambaUser = Read-Host "   Samba add-on username"
+    $sambaPass = Read-Host "   Samba add-on password" -AsSecureString
+    Write-Host ""
+    $tokenPlain = Read-Host "   Long-lived token for fresh-on-press backups (or Enter to skip)"
+    $token = $null
+    if ($tokenPlain) { $token = ConvertTo-SecureString $tokenPlain -AsPlainText -Force }
+
+    $cfg = [pscustomobject]@{
+        HaIp = $haIp; Dest = $dest; SambaUser = $sambaUser
+        SambaPass = $sambaPass; HaToken = $token
+    }
+    $cfg | Export-Clixml -Path $OffsiteConfig
+    Write-Host ""
+    Write-Ok "Saved (encrypted, local only - never goes to git)."
+    Write-Host "   Off-site folder: $dest" -ForegroundColor Gray
+    if (-not $token) {
+        Write-Warn "No token given: Backup will copy HA's MOST RECENT backup. Turn on HA's"
+        Write-Warn "automatic backups (Settings > System > Backups) so a recent one exists."
+    }
+    Write-Host "   Tip: press Backup (option 1), then check the folder for a .tar file." -ForegroundColor Gray
+}
+
+# Copy a Home Assistant backup (.tar) to the off-site folder. Best-effort: any
+# problem just warns and leaves the local snapshot intact.
+function Invoke-OffsiteCopy {
+    param($Cfg)
+    Write-Step "Copying a Home Assistant backup off-site"
+    $share = "\\$($Cfg.HaIp)\backup"
+    $cred  = New-Object System.Management.Automation.PSCredential($Cfg.SambaUser, $Cfg.SambaPass)
+    $drive = "RobotBkp"
+    Remove-PSDrive -Name $drive -Force -ErrorAction SilentlyContinue
+    try {
+        New-PSDrive -Name $drive -PSProvider FileSystem -Root $share -Credential $cred -ErrorAction Stop | Out-Null
+    } catch {
+        Write-Warn "Couldn't reach $share - is the Samba add-on running? (off-site copy skipped)"
+        return
+    }
+    try {
+        $root = "${drive}:\"
+        $before = @(Get-ChildItem $root -Filter *.tar -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)
+
+        # If a token is set, ask HA to make a fresh backup right now.
+        if ($Cfg.HaToken) {
+            $token = Unprotect-Secret $Cfg.HaToken
+            try {
+                Invoke-RestMethod -Uri "http://$($Cfg.HaIp):$HaPort/api/services/hassio/backup_full" `
+                    -Method Post -Headers @{ Authorization = "Bearer $token" } -Body '{}' `
+                    -ContentType 'application/json' -TimeoutSec 30 | Out-Null
+                Write-Host "   asked HA for a fresh backup; waiting " -NoNewline
+                $deadline = (Get-Date).AddSeconds($OffsiteWait)
+                while ((Get-Date) -lt $deadline) {
+                    Start-Sleep -Seconds 5; Write-Host "." -NoNewline
+                    $now  = @(Get-ChildItem $root -Filter *.tar -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)
+                    if ($now | Where-Object { $before -notcontains $_ }) { break }
+                }
+                Write-Host ""
+            } catch {
+                Write-Warn "Couldn't trigger a fresh backup - copying HA's most recent one instead."
+            }
+        }
+
+        $newest = Get-ChildItem $root -Filter *.tar -ErrorAction SilentlyContinue |
+                  Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if (-not $newest) {
+            Write-Warn "No HA backup (.tar) found. Turn on HA's automatic backups, or add a token."
+            return
+        }
+        if (-not (Test-Path $Cfg.Dest)) { New-Item -ItemType Directory -Force -Path $Cfg.Dest | Out-Null }
+        Copy-Item -Path $newest.FullName -Destination $Cfg.Dest -Force
+        Write-Ok "Copied '$($newest.Name)' to $($Cfg.Dest)."
+    } finally {
+        Remove-PSDrive -Name $drive -Force -ErrorAction SilentlyContinue
+    }
 }
 
 if (-not (Test-Path $VBoxManage)) {
@@ -151,6 +259,15 @@ function Invoke-Backup {
     $lines | Set-Content -Path $manifestPath -Encoding UTF8
     Write-Ok "Settings noted."
 
+    # Off-site copy (only if it's been set up via option 4).
+    $cfg = Get-OffsiteConfig
+    if ($cfg) {
+        try { Invoke-OffsiteCopy $cfg } catch { Write-Warn "Off-site copy failed: $($_.Exception.Message)" }
+    } else {
+        Write-Step "Off-site copy"
+        Write-Skip "Not set up. To survive losing the whole laptop, choose menu option 4."
+    }
+
     Write-Host "`n*** Backup complete. ***" -ForegroundColor Green
 }
 
@@ -162,14 +279,17 @@ function Invoke-ViewBackups {
     $snaps = Get-Snapshots
     if ($snaps.Count -eq 0) {
         Write-Skip "(none yet - choose option 1 to make your first backup)"
-        return
+    } else {
+        $n = 1
+        foreach ($s in $snaps) {
+            Write-Host ("   {0}.  made {1}" -f $n, $s.When) -ForegroundColor Gray
+            $n++
+        }
+        Write-Host "`n   ($($snaps.Count) backup point$(if($snaps.Count -ne 1){'s'}) total)" -ForegroundColor DarkGray
     }
-    $n = 1
-    foreach ($s in $snaps) {
-        Write-Host ("   {0}.  made {1}" -f $n, $s.When) -ForegroundColor Gray
-        $n++
-    }
-    Write-Host "`n   ($($snaps.Count) backup point$(if($snaps.Count -ne 1){'s'}) total)" -ForegroundColor DarkGray
+    $cfg = Get-OffsiteConfig
+    if ($cfg) { Write-Host "   Off-site copy: ON  ->  $($cfg.Dest)" -ForegroundColor DarkGray }
+    else      { Write-Host "   Off-site copy: not set up (menu option 4)" -ForegroundColor DarkGray }
 }
 
 # =============================================================================
@@ -261,17 +381,19 @@ function Show-Menu {
         Write-Host "   1.  Backup        save the current state as a new backup point"
         Write-Host "   2.  View backups  see your saved backup points"
         Write-Host "   3.  Restore       roll back to a saved backup point"
+        Write-Host "   4.  Off-site      set up copying backups off this laptop (one-time)"
         Write-Host ""
         Write-Host "   0.  Exit"
         Write-Host ""
-        $choice = (Read-Host "Choose 1, 2, 3, or 0").Trim()
+        $choice = (Read-Host "Choose 1, 2, 3, 4, or 0").Trim()
         switch ($choice) {
-            '1' { Invoke-Backup;            Pause-Continue }
-            '2' { Invoke-ViewBackups;       Pause-Continue }
+            '1' { Invoke-Backup;             Pause-Continue }
+            '2' { Invoke-ViewBackups;        Pause-Continue }
             '3' { Invoke-RestoreInteractive; Pause-Continue }
+            '4' { Set-OffsiteConfig;         Pause-Continue }
             '0' { return }
             ''  { return }
-            default { Write-Host "   Please type 1, 2, 3, or 0." -ForegroundColor DarkGray; Start-Sleep -Seconds 1 }
+            default { Write-Host "   Please type 1, 2, 3, 4, or 0." -ForegroundColor DarkGray; Start-Sleep -Seconds 1 }
         }
     }
 }
