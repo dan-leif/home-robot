@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Home Robot — Hardware Guide</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 40px 20px 60px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    h1 { color: #58a6ff; font-size: 1.5rem; margin-bottom: 4px; }
+    .subtitle { color: #8b949e; font-size: 0.9rem; margin-bottom: 36px; }
+
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #6e7681;
+      margin-bottom: 16px;
+      margin-top: 40px;
+    }
+
+    .context-bar {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-left: 3px solid #58a6ff;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 0.87rem;
+      color: #8b949e;
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+    .context-bar b { color: #e6edf3; }
+
+    /* ---- Tier grid ---- */
+    .tier-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 680px) { .tier-grid { grid-template-columns: 1fr; } }
+
+    .tier {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 14px;
+      padding: 20px 18px;
+    }
+    .tier.rec {
+      border-color: #238636;
+      background: #0d2318;
+    }
+
+    .tier-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 14px;
+    }
+    .badge-budget { background: #21262d; color: #8b949e; }
+    .badge-rec    { background: #238636; color: #fff; }
+    .badge-prem   { background: #1f6feb; color: #fff; }
+
+    .tier-name  { font-size: 0.97rem; font-weight: 600; color: #e6edf3; margin-bottom: 4px; }
+    .tier-price { font-size: 1.15rem; font-weight: 700; color: #58a6ff; margin-bottom: 14px; }
+    .tier-spec  { font-size: 0.81rem; color: #8b949e; line-height: 1.6; margin-bottom: 12px; }
+    .tier-speed { font-size: 0.82rem; color: #3fb950; font-weight: 600; margin-bottom: 12px; }
+    .tier-note  { font-size: 0.78rem; color: #6e7681; line-height: 1.5; }
+
+    /* ---- Alt-option rows ---- */
+    .alt-note {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 0.84rem;
+      color: #8b949e;
+      margin-bottom: 10px;
+      line-height: 1.55;
+    }
+    .alt-note .name { font-weight: 600; color: #e6edf3; margin-bottom: 4px; }
+    .alt-price { color: #58a6ff; font-weight: 600; }
+
+    /* ---- Generic cards ---- */
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 14px;
+      padding: 20px 18px;
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #6e7681;
+      margin-bottom: 14px;
+    }
+
+    .row {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 11px 0;
+      border-bottom: 1px solid #21262d;
+    }
+    .row:last-child { border-bottom: none; padding-bottom: 0; }
+    .row-icon { font-size: 1.4rem; width: 28px; flex-shrink: 0; text-align: center; margin-top: 1px; }
+    .row-body {}
+    .row-name  { font-size: 0.9rem; font-weight: 600; color: #e6edf3; }
+    .row-price { font-size: 0.81rem; color: #58a6ff; font-weight: 600; margin-top: 2px; }
+    .row-desc  { font-size: 0.8rem; color: #8b949e; margin-top: 4px; line-height: 1.45; }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 7px;
+      vertical-align: middle;
+    }
+    .tag-pick   { background: #238636; color: #fff; }
+    .tag-budget { background: #21262d; color: #8b949e; }
+    .tag-future { background: #1f6feb; color: #fff; }
+
+    /* ---- Recommended build box ---- */
+    .build-box {
+      background: #0d2318;
+      border: 1px solid #238636;
+      border-radius: 14px;
+      padding: 24px 22px;
+      margin-top: 40px;
+    }
+    .build-box h2 {
+      color: #3fb950;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .build-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.87rem;
+      padding: 7px 0;
+      border-bottom: 1px solid #0d3a1e;
+      gap: 12px;
+    }
+    .build-line:last-of-type { border-bottom: none; }
+    .build-label { color: #8b949e; white-space: nowrap; }
+    .build-val   { color: #e6edf3; font-weight: 600; text-align: right; }
+    .build-val .p { color: #58a6ff; }
+    .build-total {
+      margin-top: 16px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #3fb950;
+      text-align: right;
+    }
+
+    /* ---- Alternatives below build box ---- */
+    .alts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+    @media (max-width: 580px) { .alts { grid-template-columns: 1fr; } }
+    .alt-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 16px 16px;
+    }
+    .alt-card .hd { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6e7681; margin-bottom: 8px; }
+    .alt-card .body { font-size: 0.82rem; color: #8b949e; line-height: 1.55; }
+    .alt-card .body b { color: #e6edf3; }
+    .alt-card .body .p { color: #58a6ff; font-weight: 600; }
+
+    /* ---- Caveat ---- */
+    .caveat {
+      margin-top: 28px;
+      font-size: 0.81rem;
+      color: #6e7681;
+      line-height: 1.65;
+      border-top: 1px solid #21262d;
+      padding-top: 20px;
+    }
+    .caveat b { color: #8b949e; }
+  </style>
+</head>
+<body>
+
+  <h1>Home Robot — Hardware Guide</h1>
+  <p class="subtitle">Budget options for a dedicated always-on "brain" to replace the dev laptop.</p>
+
+  <div class="section-label" style="margin-top:0">Context — what this hardware has to do</div>
+
+  <div class="context-bar">
+    <b>Current reference:</b> RTX 4060 8 GB → <b>~47 tok/s</b> warm on llama3.1:8b Q4_K_M.
+    Feeling real-time requires roughly <b>≥ 15–20 tok/s</b> so spoken answers start arriving quickly.
+    The two viable paths: <b>(a)</b> a newer AMD Ryzen mini PC whose RDNA 3 iGPU can offload model layers
+    via ROCm, or <b>(b)</b> a mini PC with a PCIe slot for a real discrete GPU.
+    Always-on also means low idle power (~10–20 W) and fanless-quiet during normal use.
+  </div>
+
+
+  <!-- ══════════════ COMPUTE ══════════════ -->
+  <div class="section-label">The Brain — Compute</div>
+
+  <div class="tier-grid">
+
+    <div class="tier">
+      <div class="tier-badge badge-budget">Budget</div>
+      <div class="tier-name">Beelink SER5 Pro / GMKtec K8 Pro</div>
+      <div class="tier-price">~$280–$380</div>
+      <div class="tier-spec">
+        Ryzen 7 5825U or 7730U<br>
+        32 GB DDR4 · 500 GB–1 TB NVMe<br>
+        Radeon Vega 8 iGPU · ~28 W load
+      </div>
+      <div class="tier-speed">~8–12 tok/s on llama3.1:8b (CPU only)</div>
+      <div class="tier-note">
+        Ollama cannot offload to Vega-generation iGPUs — pure CPU inference. Workable for
+        3B Qwen models (~18–22 tok/s). Will feel noticeably sluggish for 8B responses.
+        Best treated as a stepping stone; upgrade the box later if speed frustrates you.
+      </div>
+    </div>
+
+    <div class="tier rec">
+      <div class="tier-badge badge-rec">★ Recommended</div>
+      <div class="tier-name">Beelink SER8 / GMKtec NucBox G3 Pro</div>
+      <div class="tier-price">~$500–$650</div>
+      <div class="tier-spec">
+        Ryzen 7 8845HS<br>
+        32 GB DDR5-5600 · 1 TB NVMe<br>
+        Radeon 780M iGPU (12 CUs, RDNA 3) · ~35 W load
+      </div>
+      <div class="tier-speed">~15–25 tok/s on llama3.1:8b (iGPU via ROCm)</div>
+      <div class="tier-note">
+        Ollama + ROCm offloads model layers to the 780M, sharing the fast DDR5-5600
+        memory pool (~80 GB/s bandwidth). Warm responses feel snappy.
+        Handles llama3.1:8b today and future Qwen 3–8B models well.
+        Quiet, low idle power, no fuss to set up on Linux.
+      </div>
+    </div>
+
+    <div class="tier">
+      <div class="tier-badge badge-prem">Premium</div>
+      <div class="tier-name">Minisforum MS-S1 MAX</div>
+      <div class="tier-price">~$1,200–$1,600</div>
+      <div class="tier-spec">
+        Ryzen AI Max+ 395 (Strix Halo)<br>
+        96 GB unified DDR5 · 2 TB SSD<br>
+        Radeon 8060S (40 CUs, RDNA 3.5) · ~60 W load
+      </div>
+      <div class="tier-speed">~55+ tok/s on 8B · 20–40 tok/s on 70B models</div>
+      <div class="tier-note">
+        CPU, GPU, and NPU share a single 96 GB memory pool (like Apple Silicon).
+        Runs 70B models that don't fit on any consumer NVIDIA GPU. Massive overkill
+        for this project today — but future-proof for years of model upgrades.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Discrete GPU path -->
+  <div class="alt-note">
+    <div class="name">Minisforum MS-A2 + low-profile GPU &nbsp;
+      <span class="alt-price">~$1,050–$1,150</span>
+    </div>
+    Ryzen 9 9955HX barebones ($799) + a low-profile RX 7600 XT or RTX 4060 LP (~$250–$300).
+    The MS-A2's PCIe x16 slot accepts a real discrete GPU — matching or beating the current RTX 4060 laptop.
+    Supports up to 96 GB DDR5. Best option if you want discrete-GPU performance without going full Strix Halo,
+    and leaves room to upgrade the GPU later.
+  </div>
+
+  <!-- Apple Silicon note -->
+  <div class="alt-note">
+    <div class="name">Mac Mini M4 (Apple Silicon) &nbsp;
+      <span class="alt-price">$599 (16 GB) / $999 M4 Pro (24 GB)</span>
+    </div>
+    Ollama uses Apple Metal — ~20–30 tok/s on llama3.1:8b. Silent, fanless, excellent watt-for-dollar.
+    The catch: macOS means running Home Assistant Container instead of HA OS (more setup steps),
+    and 16 GB is tight once macOS + HA + the model are all loaded.
+    The M4 Pro at $999 with 24 GB unified memory is comfortable and has faster memory bandwidth.
+    Worth considering if you prefer macOS or already own one.
+  </div>
+
+
+  <!-- ══════════════ RAM ══════════════ -->
+  <div class="section-label">Memory — RAM</div>
+
+  <div class="card">
+    <div class="card-title">How much RAM</div>
+
+    <div class="row">
+      <div class="row-icon">⚠️</div>
+      <div class="row-body">
+        <div class="row-name">16 GB — too tight for a dedicated host</div>
+        <div class="row-desc">
+          HA OS + faster-whisper + Kokoro TTS + llama3.1:8b pinned in RAM
+          adds up to 12–14 GB active. Leaves almost no headroom; any spike causes swapping and
+          introduces multi-second stalls right when you want fast responses.
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="row-icon">✅</div>
+      <div class="row-body">
+        <div class="row-name">32 GB — the right amount for this workload <span class="tag tag-pick">pick this</span></div>
+        <div class="row-desc">
+          Fits HA, Whisper, Kokoro, and llama3.1:8b with 6–8 GB to spare.
+          Both recommended mini PCs (SER8, NucBox G3 Pro) ship with 32 GB DDR5 — no upgrade needed.
+          On these systems the RAM is also the GPU's VRAM, so more is always better for layer offloading.
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="row-icon">🔮</div>
+      <div class="row-body">
+        <div class="row-name">64–96 GB — unified memory (Strix Halo / Apple Silicon)</div>
+        <div class="row-desc">
+          On the MS-S1 MAX or Mac Mini, all RAM is GPU-accessible at full bandwidth.
+          96 GB means the GPU holds a 70B model entirely in one shot — no CPU-offload penalty.
+          On standard DDR5 mini PCs, 64 GB offers no practical benefit unless you're running 30B+ models.
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════ AUDIO ══════════════ -->
+  <div class="section-label">Audio — Microphone &amp; Speaker</div>
+
+  <div class="card">
+    <div class="card-title">🎙️ Microphone</div>
+
+    <div class="row">
+      <div class="row-icon">🔵</div>
+      <div class="row-body">
+        <div class="row-name">
+          ReSpeaker USB Mic Array v2.0
+          <span class="tag tag-pick">pick this</span>
+        </div>
+        <div class="row-price">~$65–$70 · Seeed Studio / Amazon</div>
+        <div class="row-desc">
+          4-mic ring array, XMOS XVF-3000 DSP, hardware acoustic echo cancellation (AEC), 360° far-field
+          pickup. The community standard for Home Assistant voice projects — plug-and-play USB Audio Class,
+          no drivers needed on Linux. Works reliably from across the room even while the speaker is playing.
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="row-icon">🟣</div>
+      <div class="row-body">
+        <div class="row-name">ReSpeaker XVF3800 USB <span class="tag tag-future">upgrade</span></div>
+        <div class="row-price">~$99 · Amazon</div>
+        <div class="row-desc">
+          Newer than the v2.0 — updated DSP, up to 5 m far-field range.
+          Worth the step up if the robot lives in a large open room or noisy kitchen where the
+          v2.0's 3 m range isn't enough.
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="row-icon">⬜</div>
+      <div class="row-body">
+        <div class="row-name">Blue Snowball iCE <span class="tag tag-budget">budget / near-field</span></div>
+        <div class="row-price">~$40</div>
+        <div class="row-desc">
+          Single cardioid capsule, no array, no hardware AEC. Fine if the box sits on your desk
+          and you speak within 1–2 m. Will pick up the speaker unless you enable software echo
+          cancellation in the Whisper add-on settings.
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="row-icon">📱</div>
+      <div class="row-body">
+        <div class="row-name">HA Voice Preview Edition satellite (end-state) <span class="tag tag-future">future</span></div>
+        <div class="row-price">~$65 estimated</div>
+        <div class="row-desc">
+          A self-contained wake-word device: mic array + speaker + LED ring + local wake word,
+          talking to the mini PC brain over the network. Once you have one of these, the
+          standalone mic and speaker become unnecessary — it's all in one box.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔊 Speaker</div>
+
+    <div class="row">
+      <div class="row-icon">🟢</div>
+      <div class="row-body">
+        <div class="row-name">Any compact Bluetooth or 3.5mm speaker</div>
+        <div class="row-price">~$20–$35 · e.g. Anker Soundcore Select 4 Go</div>
+        <div class="row-desc">
+          The assistant's audio plays through whatever is set as the default output on the mini PC.
+          No smart-speaker intelligence needed — it just needs to sound decent from a few feet away.
+          Bluetooth works fine; 3.5mm avoids any pairing hassle.
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="row-icon">🖥️</div>
+      <div class="row-body">
+        <div class="row-name">Powered desktop speaker you already own</div>
+        <div class="row-price">$0</div>
+        <div class="row-desc">
+          Any USB or 3.5mm powered speaker works. Don't buy one until the mic + AEC setup is
+          confirmed working — the speaker you buy last week might already be sitting on your desk.
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════ RECOMMENDED BUILD ══════════════ -->
+  <div class="build-box">
+    <h2>★ Recommended build — ~$733 total</h2>
+    <div class="build-line">
+      <span class="build-label">Brain</span>
+      <span class="build-val">Beelink SER8 (Ryzen 7 8845HS, 32 GB DDR5, 1 TB NVMe) <span class="p">~$640</span></span>
+    </div>
+    <div class="build-line">
+      <span class="build-label">Microphone</span>
+      <span class="build-val">ReSpeaker USB Mic Array v2.0 <span class="p">~$68</span></span>
+    </div>
+    <div class="build-line">
+      <span class="build-label">Speaker</span>
+      <span class="build-val">Anker Soundcore Select 4 Go <span class="p">~$25</span></span>
+    </div>
+    <div class="build-line">
+      <span class="build-label">What you get</span>
+      <span class="build-val">~15–25 tok/s · full HA OS · ~10–15 W idle · ROCm iGPU offload</span>
+    </div>
+    <div class="build-total">Total ≈ $733</div>
+  </div>
+
+  <div class="alts">
+    <div class="alt-card">
+      <div class="hd">Cheaper alternative</div>
+      <div class="body">
+        <b>GMKtec NucBox K8 Pro or Beelink SER5 Pro</b> + ReSpeaker mic —
+        <span class="p">~$350–$450 total.</span><br><br>
+        Drop to Ryzen 7730U and CPU-only inference. Fine if you
+        switch to a 3B Qwen model (strong Chinese, fast on CPU, ~18–22 tok/s).
+        8B models will feel slow (~10 tok/s). Upgrade the box later if speed frustrates you.
+      </div>
+    </div>
+    <div class="alt-card">
+      <div class="hd">Nicer alternative</div>
+      <div class="body">
+        <b>Minisforum MS-A2 barebones + low-profile RX 7600 XT</b> —
+        <span class="p">~$1,050–$1,150 total.</span><br><br>
+        Real discrete GPU in a mini PC. Matches the current RTX 4060 laptop at warm inference.
+        Upgradeable to 96 GB DDR5 for bigger models later.
+        Best long-term investment if this becomes a permanent home server.
+      </div>
+    </div>
+  </div>
+
+  <div class="caveat">
+    <b>Why the cheap eBay Intel mini PCs don't work here:</b>
+    7th-gen Kaby Lake i5s (OptiPlex 3050, EliteDesk 800 G3 — circa 2016–2017) land at
+    ~3–8 tok/s on 8B models, have no ROCm-compatible iGPU, and run narrow DDR4-2400 at about
+    38 GB/s memory bandwidth — roughly half what a modern DDR5 Ryzen has. At $180–$200 they look
+    like a bargain, but they can't run this workload at real-time speeds.
+    They'd be fine hosting just the HA OS part, but not the Ollama brain.
+  </div>
+
+</body>
+</html>
