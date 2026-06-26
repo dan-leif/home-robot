@@ -6,7 +6,7 @@ want (music, weather, alarms, calendar, general questions), but it asks a
 follow-up question after almost every answer, which breaks my concentration,
 and there's no setting to disable that. I'm building my own voice assistant
 with Home Assistant so I can fully control the assistant's behavior — the key
-requirement is that it answers briefly and NEVER asks follow-up questions.
+requirement is that it NEVER asks follow-up questions.
 
 Additional requirements:
 - **Web answers**: The assistant should be able to look things up on the web
@@ -87,9 +87,9 @@ device (a Raspberry Pi, mini PC, or Home Assistant Green).
 ## Current status — MVP WORKING (2026-06-23)
 
 **Step 1 of the build order is DONE.** I can type a question to Home Assistant
-and get a short answer from the local model, with no follow-up questions.
+and get an answer from the local model, with no follow-up questions.
 Tested: "What's the capital of France?" -> "Paris." Behavior is exactly the
-goal — brief, no follow-ups.
+goal — no follow-ups.
 
 ### Done
 - VirtualBox 7.2.10 installed at C:\Program Files\Oracle\VirtualBox\
@@ -101,7 +101,7 @@ goal — brief, no follow-ups.
 - llama3.1:8b fully downloaded (4.9 GB, Q4_K_M) and verified responding
 - Ollama integration added in HA, pointed at http://192.168.1.187:11434
 - Assist pipeline created with Ollama as conversation agent, STT/TTS = None,
-  brief "no follow-up questions" system prompt pasted in. Tested by typing. ✅
+  "no follow-up questions" system prompt pasted in. Tested by typing. ✅
 
 ### Key facts to remember
 - Host LAN IP (VM reaches Ollama here): 192.168.1.187:11434
