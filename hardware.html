@@ -209,10 +209,17 @@
 
   <div class="context-bar">
     <b>Current reference:</b> RTX 4060 8 GB → <b>~47 tok/s</b> warm on llama3.1:8b Q4_K_M.
-    Feeling real-time requires roughly <b>≥ 15–20 tok/s</b> so spoken answers start arriving quickly.
+    The assistant gives full answers, not one-liners — so throughput matters: longer answers at
+    5 tok/s feel painfully slow, while <b>≥ 15–20 tok/s</b> feels natural.
     The two viable paths: <b>(a)</b> a newer AMD Ryzen mini PC whose RDNA 3 iGPU can offload model layers
     via ROCm, or <b>(b)</b> a mini PC with a PCIe slot for a real discrete GPU.
     Always-on also means low idle power (~10–20 W) and fanless-quiet during normal use.
+  </div>
+
+  <div class="context-bar" style="border-left-color:#3fb950">
+    <b>Interim option — the existing laptop:</b> The Lenovo Legion (Ryzen 7 7840HS + RTX 4060 8 GB)
+    already runs this stack faster than any mini PC on this page (~47 tok/s). It's a perfectly valid
+    brain while you shop for a dedicated device — see the laptop-as-brain notes at the bottom of this page.
   </div>
 
 
@@ -481,12 +488,35 @@
   </div>
 
   <div class="caveat">
-    <b>Why the cheap eBay Intel mini PCs don't work here:</b>
-    7th-gen Kaby Lake i5s (OptiPlex 3050, EliteDesk 800 G3 — circa 2016–2017) land at
-    ~3–8 tok/s on 8B models, have no ROCm-compatible iGPU, and run narrow DDR4-2400 at about
-    38 GB/s memory bandwidth — roughly half what a modern DDR5 Ryzen has. At $180–$200 they look
-    like a bargain, but they can't run this workload at real-time speeds.
-    They'd be fine hosting just the HA OS part, but not the Ollama brain.
+    <b>Used Intel mini PCs (FB Marketplace / Craigslist):</b>
+    The cutoff is <b>i7, 8th gen</b>. Below that, inference is too slow for full answers.
+    <br><br>
+    <b>Avoid:</b> anything with i5 or older, or 7th gen (Kaby Lake) and below — OptiPlex 3050,
+    EliteDesk G3, NUC7 etc. These land at ~3–8 tok/s. Too slow once answers are more than a sentence.
+    <br><br>
+    <b>Acceptable floor:</b> i7-8xxx or newer, 16 GB RAM, any SSD. Expect ~10–15 tok/s on CPU only —
+    not as snappy as the laptop, but usable. Good search terms:
+    <code>HP EliteDesk Mini i7</code> · <code>Dell OptiPlex Micro i7</code> · <code>NUC i7 16GB</code>.
+    Budget ~$120–$180. You may need to add a 16 GB RAM stick (~$20 used) if it ships with 8 GB.
+    <br><br>
+    These boxes can only run HA + Ollama on CPU — no GPU slot, no ROCm. Upgrade to one of the
+    Ryzen mini PCs above when speed starts to frustrate you.
+  </div>
+
+  <div class="caveat" style="margin-top:20px">
+    <b>Using the laptop as the brain (interim):</b>
+    The Legion is already faster than anything on this page. To keep it always-on:
+    <br>• Windows Settings → System → Power &amp; Sleep → Sleep → <b>Never</b> (plugged in)
+    <br>• In Lenovo Vantage → Power → enable <b>Conservation Mode</b> (caps battery at ~60%) to
+    protect the battery during 24/7 plugged-in use.
+    <br>• Keep it on a hard surface with airflow — the fan will spin up briefly during inference
+    but the Legion handles sustained loads fine.
+    <br><br>
+    <b>Peripheral you need for voice:</b> A voice satellite — a small device in the room that
+    listens for the wake word and relays audio to HA over the network, so the laptop can sit
+    anywhere. Best option: <b>HA Voice Preview Edition</b> (~$65 new). Unlikely to find used;
+    search <code>Home Assistant Voice</code> on FB Marketplace but don't expect results.
+    Free alternative: an old Android phone with the HA Companion app configured as a satellite.
   </div>
 
 </body>

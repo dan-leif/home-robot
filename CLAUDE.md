@@ -45,7 +45,7 @@ automation that listens for Assist events and appends each Q&A to a text file.
 I'm in the testing phase. I want to get this working on my laptop and test it
 by typing before I buy any hardware or set up voice. This laptop is NOT the
 long-term home for it — eventually the "brain" will move to an always-on
-device (a Raspberry Pi, mini PC, or Home Assistant Green).
+device (a capable mini PC — i7 8th gen+, 16 GB+ RAM minimum to run Ollama + HA together).
 
 ## My hardware (the test machine)
 - Lenovo Legion Slim 5 gaming laptop, Windows
