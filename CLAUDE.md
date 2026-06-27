@@ -121,14 +121,19 @@ goal — no follow-ups.
 - Kokoro server: C:\DEV\home-robot\kokoro\ (kokoro_wyoming.py + run_kokoro.ps1).
   Not auto-started — re-run run_kokoro.ps1 after a reboot.
 
-### Pending — finish OFF-SITE backup setup (one-time, in the HA browser)
-- The Backup Robot menu now has option 4 to copy backups OFF the laptop (so the
-  robot survives total laptop loss), but the one-time HA setup isn't done yet.
-  TO DO when I'm back: (1) install the HA "Samba share" add-on (set user/pass,
-  Start); (2) optionally create a long-lived token; (3) Backup Robot → 4 to enter
-  IP/off-site folder (a OneDrive folder)/creds; (4) press Backup and confirm a
-  .tar lands in the folder. Full steps: backup-recovery.html. Until then, only the
-  CODE is safe off-machine (GitHub); the HA config still lives only on this laptop.
+### OFF-SITE backup — DONE & TESTED 2026-06-26
+- The HA config now backs up OFF the laptop to Google Drive
+  (`D:\My Drive\Dev\Robot\Backups\`). Tested end-to-end: a real 444 MB HA backup
+  .tar (config + Whisper/Piper add-ons + share/ssl/media) landed in the folder.
+- Method (no Samba add-on needed — it was dropped): every Backup Robot run asks
+  HA for a fresh full backup via the `hassio.backup_full` core service, finds the
+  new backup over the WebSocket API, and downloads it via the core
+  `/api/backup/download` endpoint. Needs ONLY a HA long-lived token (the
+  Supervisor REST proxy rejects long-lived tokens, hence the WebSocket + core
+  route). Keeps the newest 5 backups both off-site and inside HA.
+- Config saved at `offsite-config.xml` (DPAPI-encrypted token, gitignored). To
+  redo on a new machine: Backup Robot → 4. Full steps: backup-recovery.html.
+- Now BOTH code (GitHub) and HA config (Google Drive) survive total laptop loss.
 
 ### Next step — LATENCY TUNING, then Step 3 (Chinese)
 - Make it feel real-time: (1) pin the model in VRAM, (2) streaming TTS in the HA

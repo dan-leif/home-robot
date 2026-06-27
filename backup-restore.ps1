@@ -8,8 +8,9 @@
 #      4. Off-site      - one-time setup to copy backups OFF this laptop
 #
 #  Backup makes a VirtualBox snapshot (rolls back in place) AND, if off-site is
-#  set up, copies your Home Assistant backup to a folder off this laptop (e.g.
-#  OneDrive / a USB drive) so you can rebuild even if the laptop is lost.
+#  set up, asks Home Assistant to make a full backup and downloads it to a folder
+#  off this laptop (e.g. your Google Drive folder) so you can rebuild even if the
+#  laptop is lost. Off-site needs only a Home Assistant long-lived token.
 #
 #  Your CODE is backed up separately by git/GitHub. None of this needs admin.
 #  See backup-recovery.html for the one-time off-site setup + how to rebuild.
@@ -30,7 +31,9 @@ $OffsiteConfig = "C:\DEV\home-robot\offsite-config.xml" # local only, DPAPI-encr
 $OllamaApi     = "http://localhost:11434"
 $HaPort        = 8123
 $StopWait      = 120        # seconds to wait for a clean VM shutdown
-$OffsiteWait   = 180        # seconds to wait for a fresh HA backup to appear
+$OffsiteWait   = 300        # seconds to wait for HA to finish making a full backup
+$OffsiteKeep   = 5          # how many .tar backups to keep in the off-site folder
+$DefaultDest   = "D:\My Drive\Dev\Robot\Backups"   # Google Drive folder (off-laptop)
 # ----------------------------------------------------------------------------
 
 $ErrorActionPreference = "Stop"
@@ -102,94 +105,150 @@ function Get-OffsiteConfig {
     return $null
 }
 
-# One-time setup: collect where/how to copy backups off the laptop and save it
-# locally (secrets DPAPI-encrypted via Export-Clixml; the file is gitignored).
+# Send one command to Home Assistant's WebSocket API and return the result object
+# (or $null if anything goes wrong). HA's Supervisor REST proxy refuses long-lived
+# tokens, so we read/manage backups over the WebSocket API instead.
+function Invoke-HaWs {
+    param($Ip, $Token, [hashtable]$Command)
+    $ws = $null
+    try {
+        $ws = New-Object System.Net.WebSockets.ClientWebSocket
+        $ct = [System.Threading.CancellationToken]::None
+        $ws.ConnectAsync([Uri]"ws://${Ip}:$HaPort/api/websocket", $ct).Wait(10000) | Out-Null
+        $recv = {
+            $buf = New-Object byte[] 65536; $sb = New-Object System.Text.StringBuilder
+            do {
+                $seg = [ArraySegment[byte]]::new($buf)
+                $r = $ws.ReceiveAsync($seg, $ct); $r.Wait()
+                [void]$sb.Append([System.Text.Encoding]::UTF8.GetString($buf, 0, $r.Result.Count))
+            } while (-not $r.Result.EndOfMessage)
+            $sb.ToString() | ConvertFrom-Json
+        }
+        $send = { param($o)
+            $b = [System.Text.Encoding]::UTF8.GetBytes(($o | ConvertTo-Json -Compress -Depth 8))
+            $ws.SendAsync([ArraySegment[byte]]::new($b), 'Text', $true, $ct).Wait()
+        }
+        $null = & $recv                                   # auth_required
+        & $send @{ type = 'auth'; access_token = $Token }
+        if ((& $recv).type -ne 'auth_ok') { return $null } # auth_ok / auth_invalid
+        $Command['id'] = 1
+        & $send $Command
+        return (& $recv)
+    } catch { return $null }
+    finally { if ($ws) { $ws.Dispose() } }
+}
+
+# One-time setup: collect where to copy backups off the laptop + the HA token,
+# and save it locally (the token is DPAPI-encrypted via Export-Clixml; the file
+# is gitignored).
 function Set-OffsiteConfig {
     Write-Host "`n=== Set up off-site backup (one-time) ===`n" -ForegroundColor Yellow
-    Write-Host "   This copies your Home Assistant backup to a folder OFF this laptop"
-    Write-Host "   (e.g. a OneDrive folder, or a USB drive) each time you press Backup,"
+    Write-Host "   Each time you press Backup, this asks Home Assistant to make a full"
+    Write-Host "   backup and downloads it to a folder OFF this laptop (your Google Drive),"
     Write-Host "   so you can rebuild the robot even if the laptop is lost."
     Write-Host ""
     Write-Host "   FIRST, one time in the HA browser (see backup-recovery.html):" -ForegroundColor Gray
-    Write-Host "     - Install the 'Samba share' add-on, set a username + password, Start it." -ForegroundColor Gray
-    Write-Host "     - Optional: create a long-lived token (your profile) for fresh-on-press." -ForegroundColor Gray
+    Write-Host "     - Click your username (bottom-left) > Security tab." -ForegroundColor Gray
+    Write-Host "     - Under 'Long-lived access tokens' > Create Token, name it 'Backup Robot'." -ForegroundColor Gray
+    Write-Host "     - Copy the long token it shows (you only see it once) and paste it below." -ForegroundColor Gray
     Write-Host ""
     $haIp = Read-Host "   Home Assistant IP [192.168.1.188]"
     if (-not $haIp) { $haIp = "192.168.1.188" }
-    $dest = Read-Host "   Off-site folder (e.g. C:\Users\Dev\OneDrive\RobotBackups)"
-    if (-not $dest) { Write-Warn "No folder given - setup cancelled."; return }
-    $sambaUser = Read-Host "   Samba add-on username"
-    $sambaPass = Read-Host "   Samba add-on password" -AsSecureString
+    $dest = Read-Host "   Off-site folder [$DefaultDest]"
+    if (-not $dest) { $dest = $DefaultDest }
     Write-Host ""
-    $tokenPlain = Read-Host "   Long-lived token for fresh-on-press backups (or Enter to skip)"
-    $token = $null
-    if ($tokenPlain) { $token = ConvertTo-SecureString $tokenPlain -AsPlainText -Force }
+    $tokenPlain = Read-Host "   Paste your Home Assistant long-lived token"
+    if (-not $tokenPlain) { Write-Warn "No token given - setup cancelled."; return }
+    $token = ConvertTo-SecureString $tokenPlain -AsPlainText -Force
 
-    $cfg = [pscustomobject]@{
-        HaIp = $haIp; Dest = $dest; SambaUser = $sambaUser
-        SambaPass = $sambaPass; HaToken = $token
-    }
+    $cfg = [pscustomobject]@{ HaIp = $haIp; Dest = $dest; HaToken = $token }
     $cfg | Export-Clixml -Path $OffsiteConfig
     Write-Host ""
-    Write-Ok "Saved (encrypted, local only - never goes to git)."
+    Write-Ok "Saved (token encrypted, local only - never goes to git)."
     Write-Host "   Off-site folder: $dest" -ForegroundColor Gray
-    if (-not $token) {
-        Write-Warn "No token given: Backup will copy HA's MOST RECENT backup. Turn on HA's"
-        Write-Warn "automatic backups (Settings > System > Backups) so a recent one exists."
-    }
     Write-Host "   Tip: press Backup (option 1), then check the folder for a .tar file." -ForegroundColor Gray
 }
 
-# Copy a Home Assistant backup (.tar) to the off-site folder. Best-effort: any
-# problem just warns and leaves the local snapshot intact.
+# Ask Home Assistant to make a fresh full backup, then download that .tar to the
+# off-site folder. Creation uses the core `hassio.backup_full` service; listing
+# and pruning use the WebSocket API; the download uses the core backup endpoint -
+# none of which need the Supervisor REST proxy (it rejects long-lived tokens).
+# Best-effort: any problem just warns and leaves the local VM snapshot intact.
 function Invoke-OffsiteCopy {
     param($Cfg)
-    Write-Step "Copying a Home Assistant backup off-site"
-    $share = "\\$($Cfg.HaIp)\backup"
-    $cred  = New-Object System.Management.Automation.PSCredential($Cfg.SambaUser, $Cfg.SambaPass)
-    $drive = "RobotBkp"
-    Remove-PSDrive -Name $drive -Force -ErrorAction SilentlyContinue
-    try {
-        New-PSDrive -Name $drive -PSProvider FileSystem -Root $share -Credential $cred -ErrorAction Stop | Out-Null
-    } catch {
-        Write-Warn "Couldn't reach $share - is the Samba add-on running? (off-site copy skipped)"
+    Write-Step "Backing up Home Assistant off-site (Google Drive)"
+    $token   = Unprotect-Secret $Cfg.HaToken
+    $headers = @{ Authorization = "Bearer $token" }
+    $ip      = $Cfg.HaIp
+    $stamp   = Get-Date -Format "yyyyMMdd-HHmmss"
+
+    # 0. Confirm HA's backup API is reachable, and note what already exists.
+    $info = Invoke-HaWs $ip $token @{ type = 'backup/info' }
+    if (-not $info -or -not $info.success) {
+        Write-Warn "Couldn't reach Home Assistant's backup API. Is the VM running and the token valid? (off-site copy skipped)"
         return
     }
+    $before = @($info.result.backups | ForEach-Object { $_.backup_id })
+
+    # 1. Ask HA for a fresh full backup (core service - no Supervisor proxy needed).
+    Write-Host "   asking Home Assistant to make a full backup ..." -NoNewline
     try {
-        $root = "${drive}:\"
-        $before = @(Get-ChildItem $root -Filter *.tar -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)
+        Invoke-RestMethod -Uri "http://${ip}:$HaPort/api/services/hassio/backup_full" `
+            -Method Post -Headers $headers -Body (@{ name = "offsite-$stamp" } | ConvertTo-Json -Compress) `
+            -ContentType 'application/json' -TimeoutSec $OffsiteWait | Out-Null
+        Write-Host ""
+    } catch {
+        Write-Host ""
+        Write-Warn "Couldn't ask HA for a backup: $($_.Exception.Message) (off-site copy skipped)"
+        return
+    }
 
-        # If a token is set, ask HA to make a fresh backup right now.
-        if ($Cfg.HaToken) {
-            $token = Unprotect-Secret $Cfg.HaToken
-            try {
-                Invoke-RestMethod -Uri "http://$($Cfg.HaIp):$HaPort/api/services/hassio/backup_full" `
-                    -Method Post -Headers @{ Authorization = "Bearer $token" } -Body '{}' `
-                    -ContentType 'application/json' -TimeoutSec 30 | Out-Null
-                Write-Host "   asked HA for a fresh backup; waiting " -NoNewline
-                $deadline = (Get-Date).AddSeconds($OffsiteWait)
-                while ((Get-Date) -lt $deadline) {
-                    Start-Sleep -Seconds 5; Write-Host "." -NoNewline
-                    $now  = @(Get-ChildItem $root -Filter *.tar -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name)
-                    if ($now | Where-Object { $before -notcontains $_ }) { break }
-                }
-                Write-Host ""
-            } catch {
-                Write-Warn "Couldn't trigger a fresh backup - copying HA's most recent one instead."
-            }
+    # 2. Wait for the new backup to show up and the manager to go idle.
+    $newId = $null
+    $deadline = (Get-Date).AddSeconds($OffsiteWait)
+    Write-Host "   waiting for it to finish " -NoNewline
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Seconds 4; Write-Host "." -NoNewline
+        $info = Invoke-HaWs $ip $token @{ type = 'backup/info' }
+        if (-not $info -or -not $info.success) { continue }
+        $new = $info.result.backups | Where-Object { $before -notcontains $_.backup_id } |
+               Sort-Object date -Descending | Select-Object -First 1
+        if ($new -and $info.result.state -eq 'idle') { $newId = $new.backup_id; break }
+    }
+    Write-Host ""
+    if (-not $newId) { Write-Warn "Backup didn't finish in time - off-site copy skipped."; return }
+    Write-Ok "Home Assistant made backup '$newId'."
+
+    # 3. Download it straight to the off-site folder (core endpoint, token works here).
+    if (-not (Test-Path $Cfg.Dest)) { New-Item -ItemType Directory -Force -Path $Cfg.Dest | Out-Null }
+    $outFile = Join-Path $Cfg.Dest "ha-backup-$stamp-$newId.tar"
+    Write-Host "   downloading it to the off-site folder ..." -NoNewline
+    try {
+        Invoke-WebRequest -Uri "http://${ip}:$HaPort/api/backup/download/${newId}?agent_id=hassio.local" `
+            -Headers $headers -OutFile $outFile -TimeoutSec $OffsiteWait -UseBasicParsing | Out-Null
+        Write-Host ""
+    } catch {
+        Write-Host ""
+        Write-Warn "Download failed: $($_.Exception.Message) (off-site copy skipped)"
+        return
+    }
+    $sizeMB = [math]::Round((Get-Item $outFile).Length / 1MB, 1)
+    Write-Ok "Saved $([System.IO.Path]::GetFileName($outFile)) ($sizeMB MB) to $($Cfg.Dest)."
+
+    # 4. Keep the off-site folder trimmed to the newest $OffsiteKeep.
+    Get-ChildItem $Cfg.Dest -Filter "ha-backup-*.tar" -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending | Select-Object -Skip $OffsiteKeep | ForEach-Object {
+            Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+            Write-Skip "removed old off-site backup $($_.Name)"
         }
 
-        $newest = Get-ChildItem $root -Filter *.tar -ErrorAction SilentlyContinue |
-                  Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        if (-not $newest) {
-            Write-Warn "No HA backup (.tar) found. Turn on HA's automatic backups, or add a token."
-            return
+    # 5. Keep HA's own backup list trimmed so the VM disk doesn't fill up.
+    $info = Invoke-HaWs $ip $token @{ type = 'backup/info' }
+    if ($info -and $info.success) {
+        $info.result.backups | Sort-Object date -Descending | Select-Object -Skip $OffsiteKeep | ForEach-Object {
+            $del = Invoke-HaWs $ip $token @{ type = 'backup/delete'; backup_id = $_.backup_id }
+            if ($del -and $del.success) { Write-Skip "removed old in-HA backup $($_.backup_id)" }
         }
-        if (-not (Test-Path $Cfg.Dest)) { New-Item -ItemType Directory -Force -Path $Cfg.Dest | Out-Null }
-        Copy-Item -Path $newest.FullName -Destination $Cfg.Dest -Force
-        Write-Ok "Copied '$($newest.Name)' to $($Cfg.Dest)."
-    } finally {
-        Remove-PSDrive -Name $drive -Force -ErrorAction SilentlyContinue
     }
 }
 
