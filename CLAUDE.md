@@ -119,7 +119,8 @@ goal — no follow-ups.
 - Whisper (STT) + Kokoro af_sky (TTS, native Windows Wyoming server on the host,
   port 10200) wired into the "Robot" Assist pipeline. Voice confirmed excellent.
 - Kokoro server: C:\DEV\home-robot\kokoro\ (kokoro_wyoming.py + run_kokoro.ps1).
-  Not auto-started — re-run run_kokoro.ps1 after a reboot.
+  The "Start Robot" desktop shortcut DOES start Kokoro (Ollama → Kokoro → HA VM,
+  idempotent). Only run run_kokoro.ps1 by hand if you started things piecemeal.
 
 ### OFF-SITE backup — DONE & TESTED 2026-06-26
 - The HA config now backs up OFF the laptop to Google Drive
@@ -148,8 +149,23 @@ goal — no follow-ups.
 - To pick up streaming, HA must reload the Kokoro Wyoming integration (it caches
   the engine's capabilities at connect time) and be on Core ≥ 2025.8.
 
-### Next step — connect my old Android phone as a voice satellite
-- Turn a spare Android phone into the room's mic & speaker so I can talk to the
-  Robot over Wi-Fi (no laptop mic, no browser-mic workarounds). After that:
-  Step 3 Chinese, web search, music, move to a dedicated always-on device. All
-  free/local.
+### Voice satellite (Android phone) — WORKING but BUGGY (2026-06-27)
+- Connected a spare Pixel 6a (Android 16, same Wi-Fi) as the room mic + speaker
+  via the official Home Assistant companion app, push-to-talk Assist pointed at
+  the "Robot" pipeline. Voice chatting works end-to-end over Wi-Fi (no laptop
+  mic, no browser-mic workarounds).
+- TWO bugs to fix next time:
+  1. **Slow** — takes a long time to respond from the phone.
+  2. **Double speech** — it reads the answer out TWICE.
+- Likely suspects to check (not yet diagnosed): the double-read smells like both
+  HA's normal TTS playback AND the streaming TTS path firing (or the app playing
+  the response while HA also announces it); slowness could be the phone↔HA round
+  trip, a cold model/Kokoro, or the same duplicate-pipeline issue. Verify the
+  whole stack is up first (Kokoro :10200, Ollama :11434, HA :8123).
+
+### PROJECT SHELVED (2026-06-27)
+- Putting the project on the shelf for now. Resume point = fix the two phone
+  voice-satellite bugs above (slow + double-read), THEN: Step 3 Chinese, web
+  search, music, move to a dedicated always-on device. All free/local.
+- To bring the stack back up: double-click the "Start Robot" desktop shortcut
+  (starts Ollama → Kokoro → HA VM; idempotent). "Stop Robot" tears it down.

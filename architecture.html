@@ -14,7 +14,18 @@
       margin: 0 auto;
     }
     h1 { color: #58a6ff; font-size: 1.5rem; margin-bottom: 4px; }
-    .subtitle { color: #8b949e; font-size: 0.9rem; margin-bottom: 36px; }
+    .subtitle { color: #8b949e; font-size: 0.9rem; margin-bottom: 16px; }
+
+    .shelved {
+      background: #1c1600;
+      border: 1px solid #9e6a03;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      color: #d6913b;
+      margin-bottom: 36px;
+    }
+    .shelved b { color: #f0b052; }
 
     .section-label {
       font-size: 0.72rem;
@@ -164,6 +175,8 @@
   <h1>Home Robot</h1>
   <p class="subtitle">My own voice assistant — never asks follow-up questions.</p>
 
+  <div class="shelved">⏸️ <b>On the shelf for now</b> — picking it back up at the voice-satellite bugs below (slow + double-read).</div>
+
   <!-- ===== Working now ===== -->
   <div class="section-label">Working now — I can talk to it ✓</div>
 
@@ -231,9 +244,9 @@
     </div>
 
     <div class="step next">
-      <div class="step-num">⚡</div>
+      <div class="step-num">⚠</div>
       <div class="step-icon">📱</div>
-      <div class="step-text">Add a voice satellite — my old Android phone &nbsp;←&nbsp; up next<span>Turn a spare Android phone into the room's mic &amp; speaker — it talks to the Robot over Wi-Fi, so no laptop mic and no browser workarounds needed.</span></div>
+      <div class="step-text">Voice satellite — my Pixel phone &nbsp;—&nbsp; works, but buggy<span>A spare Pixel 6a is now the room's mic &amp; speaker, talking to the Robot over Wi-Fi (no laptop mic, no browser workarounds). Two bugs to fix when I'm back: it's <b>slow to respond</b>, and it <b>reads each answer out twice</b>.</span></div>
     </div>
 
     <div class="step minor">
