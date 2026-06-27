@@ -46,24 +46,24 @@
   <div class="card">
     <span class="pill">In the Home Assistant browser</span>
     <ol>
-      <li><b>Install the Samba add-on.</b> Settings → Add-ons → Add-on Store → <b>Samba share</b> → Install.
-          In its Configuration, set a <b>username and password</b>, then Start it. (This lets the laptop reach HA's backup files.)</li>
-      <li><b>Optional — create a token</b> for fresh-on-press backups. Click your name (bottom-left) → Security →
-          <b>Long-lived access tokens</b> → Create → copy it. (Skip this and HA's automatic backups are used instead.)</li>
+      <li><b>Create a long-lived token.</b> Click your name (bottom-left) → <b>Security</b> tab →
+          scroll to <b>Long-lived access tokens</b> → <b>Create Token</b> → name it <code>Backup Robot</code> →
+          copy the long string it shows (you only see it once). That's all HA needs — no add-ons to install.</li>
     </ol>
   </div>
   <div class="card">
     <span class="pill">In the Backup Robot menu</span>
     <ol>
       <li>Double-click <b>Backup Robot</b> → choose <b>4 (Off-site)</b>.</li>
-      <li>Enter: your HA IP, an <b>off-site folder</b> (use a OneDrive folder like
-          <code>C:\Users\Dev\OneDrive\RobotBackups</code> so it leaves the laptop), the Samba username/password,
-          and paste the token (or press Enter to skip).</li>
-      <li>If you skipped the token: turn on HA's <b>automatic backups</b> (Settings → System → Backups) so a recent one always exists.</li>
-      <li>Press <b>1 (Backup)</b> once, then check your off-site folder — you should see a <code>.tar</code> file appear.</li>
+      <li>Enter: your HA IP, the <b>off-site folder</b> (press Enter to accept the default
+          <code>D:\My Drive\Dev\Robot\Backups</code> — your Google Drive, so it leaves the laptop),
+          then <b>paste the token</b>.</li>
+      <li>Press <b>1 (Backup)</b> once, then check your Google Drive folder — a <code>.tar</code> file
+          (a few hundred MB) should appear.</li>
     </ol>
   </div>
-  <p class="lead">From then on, every <b>Backup</b> also drops a fresh copy of your HA setup into that off-site folder.</p>
+  <p class="lead">From then on, every <b>Backup</b> asks Home Assistant to make a fresh full backup and downloads it
+  into that Google Drive folder (keeping the newest 5). Nothing to remember — it just happens.</p>
 
   <h2>Part 2 — Rebuild on a new laptop</h2>
   <div class="card">
@@ -89,6 +89,6 @@
     the AI model, the voice files — is on GitHub or free to re-download. Keep this page; it lives on GitHub, so it survives too.</p>
   </div>
 
-  <p class="foot">Everything stays free &amp; local. The off-site copy uses a folder you already sync (OneDrive) or a USB drive — no paid service.</p>
+  <p class="foot">Everything stays free &amp; local. The off-site copy uses a folder you already sync (Google Drive) — no paid service, no extra add-ons.</p>
 </body>
 </html>
