@@ -135,8 +135,21 @@ goal — no follow-ups.
   redo on a new machine: Backup Robot → 4. Full steps: backup-recovery.html.
 - Now BOTH code (GitHub) and HA config (Google Drive) survive total laptop loss.
 
-### Next step — LATENCY TUNING, then Step 3 (Chinese)
-- Make it feel real-time: (1) pin the model in VRAM, (2) streaming TTS in the HA
-  UI, (3) shorter-answer system prompt. Maybe swap to a 3B model. Details and the
-  measured timings are in memory/project-state.md. After that: Chinese, web
-  search, music, move to a dedicated always-on device. All free/local.
+### LATENCY TUNING — DONE 2026-06-27 (feels real-time now)
+- Make it feel real-time, both levers done: (1) model pinned in VRAM
+  (OLLAMA_KEEP_ALIVE=-1), and (2) STREAMING — the agent now starts speaking the
+  first sentence while the rest of the answer is still being generated. There's no
+  HA toggle for this; it's automatic once the TTS engine supports Wyoming
+  streaming, so the Kokoro server (`kokoro/kokoro_wyoming.py`) was upgraded to
+  advertise `supports_synthesize_streaming` and synthesize sentence-by-sentence
+  (verified end-to-end with a Wyoming streaming client). Answers stay full-length
+  (the shorter-answer lever was dropped per my preference). Details in
+  memory/project-state.md.
+- To pick up streaming, HA must reload the Kokoro Wyoming integration (it caches
+  the engine's capabilities at connect time) and be on Core ≥ 2025.8.
+
+### Next step — connect my old Android phone as a voice satellite
+- Turn a spare Android phone into the room's mic & speaker so I can talk to the
+  Robot over Wi-Fi (no laptop mic, no browser-mic workarounds). After that:
+  Step 3 Chinese, web search, music, move to a dedicated always-on device. All
+  free/local.
