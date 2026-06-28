@@ -149,23 +149,29 @@ goal — no follow-ups.
 - To pick up streaming, HA must reload the Kokoro Wyoming integration (it caches
   the engine's capabilities at connect time) and be on Core ≥ 2025.8.
 
-### Voice satellite (Android phone) — WORKING but BUGGY (2026-06-27)
+### Voice satellite (Android phone) — WORKING (2026-06-27, one bug still open)
 - Connected a spare Pixel 6a (Android 16, same Wi-Fi) as the room mic + speaker
   via the official Home Assistant companion app, push-to-talk Assist pointed at
   the "Robot" pipeline. Voice chatting works end-to-end over Wi-Fi (no laptop
   mic, no browser-mic workarounds).
-- TWO bugs to fix next time:
-  1. **Slow** — takes a long time to respond from the phone.
-  2. **Double speech** — it reads the answer out TWICE.
-- Likely suspects to check (not yet diagnosed): the double-read smells like both
-  HA's normal TTS playback AND the streaming TTS path firing (or the app playing
-  the response while HA also announces it); slowness could be the phone↔HA round
-  trip, a cold model/Kokoro, or the same duplicate-pipeline issue. Verify the
-  whole stack is up first (Kokoro :10200, Ollama :11434, HA :8123).
+- **Double-speech bug — FIXED 2026-06-28 (commit `1bc460b`):** Every response
+  was spoken out loud TWICE, on BOTH the PC and the Pixel satellite. Root cause:
+  when a companion-app satellite is used, HA fires two separate TTS requests to
+  Kokoro per response — (1) a Wyoming streaming request (sentence-by-sentence as
+  the LLM generates) and (2) a classic one-shot `Synthesize` for the
+  `/api/tts_proxy` URL the companion app downloads separately. Both rendered
+  audio; the user heard the answer twice. Fix: a dedup guard in
+  `kokoro_wyoming.py` (`_streaming_started_at` flag) that silences the duplicate
+  one-shot while a stream is active. Verified working on PC; Pixel satellite
+  verification pending.
+- **Slow response — still open:** The Pixel satellite takes noticeably longer to
+  respond than the PC browser interface. Not yet diagnosed; likely phone↔HA
+  round-trip latency and/or STT overhead. Verify the full stack is up first
+  (Kokoro :10200, Ollama :11434, HA :8123) before investigating.
 
 ### PROJECT SHELVED (2026-06-27)
-- Putting the project on the shelf for now. Resume point = fix the two phone
-  voice-satellite bugs above (slow + double-read), THEN: Step 3 Chinese, web
-  search, music, move to a dedicated always-on device. All free/local.
+- Putting the project on the shelf for now. Resume point = investigate the Pixel
+  satellite slowness (double-speech is fixed — commit `1bc460b`), THEN: Step 3
+  Chinese, web search, music, move to a dedicated always-on device. All free/local.
 - To bring the stack back up: double-click the "Start Robot" desktop shortcut
   (starts Ollama → Kokoro → HA VM; idempotent). "Stop Robot" tears it down.
