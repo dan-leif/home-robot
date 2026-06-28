@@ -15,6 +15,7 @@ import asyncio
 import logging
 import os
 import re
+import time
 
 import numpy as np
 from kokoro_onnx import Kokoro
@@ -53,6 +54,35 @@ CHUNK_SAMPLES = 1024
 #   - a newline.
 _BOUNDARY_RE = re.compile(r"^(.*(?:\.(?=\s)|[!?。！？]|\n))", re.DOTALL)
 
+# --- De-duplicate Home Assistant's double playback -----------------------------
+# When a companion-app satellite is in use, HA fires TWO TTS requests to Kokoro
+# per response:
+#   1. Wyoming streaming (SynthesizeStart → chunks → SynthesizeStop) on one TCP
+#      connection — sentences spoken as the LLM generates them.
+#   2. A classic one-shot Synthesize on a SEPARATE TCP connection — triggered when
+#      HA builds the /api/tts_proxy/<token> URL for the companion app's own media
+#      player to download and play locally.
+# Both arrive at Kokoro; both would render audio; user hears the answer twice.
+#
+# Two silencing conditions (either → silent empty stream returned to one-shot):
+#   A. Stream currently in progress (_streaming_started_at > 0, within timeout):
+#      the one-shot arrives before SynthesizeStop — the case in all log samples.
+#   B. Stream JUST finished and the one-shot text matches (_last_stream):
+#      post-stream safety net for the race where SynthesizeStop wins the race.
+#
+# _streaming_started_at resets to 0 on SynthesizeStop, or automatically after
+# _STREAM_TIMEOUT_S so a dropped connection never permanently blocks one-shots.
+# asyncio is single-threaded, so this module-level state needs no lock.
+_DEDUP_WINDOW_S = 30.0
+_STREAM_TIMEOUT_S = 120.0
+_streaming_started_at = 0.0          # monotonic timestamp; 0 = not streaming
+_last_stream = {"text": "", "time": 0.0}
+
+
+def _norm(text: str) -> str:
+    """Whitespace-insensitive key for comparing streamed vs one-shot text."""
+    return "".join(text.split())
+
 
 def _build_info() -> Info:
     return Info(
@@ -90,10 +120,13 @@ class KokoroEventHandler(AsyncEventHandler):
         # Streaming state (one streaming request at a time per connection).
         self._streaming = False
         self._buffer = ""
+        self._streamed_full = ""
         self._voice = DEFAULT_VOICE
         self._audio_started = False
 
     async def handle_event(self, event) -> bool:
+        global _streaming_started_at
+
         if Describe.is_type(event.type):
             await self.write_event(self._info.event())
             return True
@@ -101,8 +134,10 @@ class KokoroEventHandler(AsyncEventHandler):
         # --- Streaming path -------------------------------------------------
         if SynthesizeStart.is_type(event.type):
             start = SynthesizeStart.from_event(event)
+            _streaming_started_at = time.monotonic()
             self._streaming = True
             self._buffer = ""
+            self._streamed_full = ""
             self._audio_started = False
             self._voice = DEFAULT_VOICE
             if start.voice and start.voice.name:
@@ -128,8 +163,15 @@ class KokoroEventHandler(AsyncEventHandler):
             await self.write_event(AudioStop().event())
             await self.write_event(SynthesizeStopped().event())
             _LOGGER.debug("SynthesizeStop -> stream closed")
+            # Record streamed text for the post-stream dedup safety net (case B),
+            # then clear the active-stream flag (case A).
+            if self._streamed_full.strip():
+                _last_stream["text"] = _norm(self._streamed_full)
+                _last_stream["time"] = time.monotonic()
+            _streaming_started_at = 0.0
             self._streaming = False
             self._buffer = ""
+            self._streamed_full = ""
             self._audio_started = False
             return True
 
@@ -141,6 +183,28 @@ class KokoroEventHandler(AsyncEventHandler):
             if synth.voice and synth.voice.name:
                 voice = synth.voice.name
             _LOGGER.info("Synthesize (%s): %s", voice, text)
+
+            # Silence the duplicate one-shot (case A: stream in progress;
+            # case B: stream just finished and text matches).
+            now = time.monotonic()
+            stream_active = (
+                _streaming_started_at > 0
+                and (now - _streaming_started_at) < _STREAM_TIMEOUT_S
+            )
+            post_stream_match = (
+                bool(_last_stream["text"])
+                and _norm(text) == _last_stream["text"]
+                and (now - _last_stream["time"]) < _DEDUP_WINDOW_S
+            )
+            if stream_active or post_stream_match:
+                reason = "stream in progress" if stream_active else "already streamed"
+                _LOGGER.info("Suppressing duplicate one-shot (%s)", reason)
+                _last_stream["text"] = ""
+                await self.write_event(
+                    AudioStart(rate=SAMPLE_RATE, width=SAMPLE_WIDTH, channels=CHANNELS).event()
+                )
+                await self.write_event(AudioStop().event())
+                return True
 
             pcm = self._render(text, voice)
             await self.write_event(
@@ -166,6 +230,7 @@ class KokoroEventHandler(AsyncEventHandler):
 
     async def _speak(self, text: str) -> None:
         """Render text and stream it into the (single) audio response."""
+        self._streamed_full += " " + text
         pcm = self._render(text, self._voice)
         if not self._audio_started:
             await self._begin_audio()
@@ -206,7 +271,15 @@ async def main() -> None:
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO)
+    log_file = os.path.join(HERE, "kokoro.log")
+    logging.basicConfig(
+        level=logging.DEBUG if args.debug else logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(log_file, mode="a", encoding="utf-8"),
+        ],
+    )
 
     _LOGGER.info("Loading Kokoro model...")
     kokoro = Kokoro(MODEL_PATH, VOICES_PATH)
