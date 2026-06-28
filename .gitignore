@@ -25,6 +25,9 @@ backups/
 # machine-specific). MUST NEVER be committed.
 offsite-config.xml
 
+# Logs
+kokoro/*.log
+
 # Windows
 Thumbs.db
 Desktop.ini
