@@ -8,6 +8,11 @@ goal: brief answers, **never asks follow-up questions**.
 
 **Step 1 (typed input) ✅ and Step 2 (voice) ✅ are done.**
 You can speak to it and it answers out loud via a high-quality local TTS voice.
+A spare Android phone (Pixel 6a) works as a room mic + speaker via the HA
+companion app. A double-speech bug — HA was firing both a Wyoming streaming TTS
+request and a classic one-shot `Synthesize` to Kokoro, so every response played
+twice — was fixed in commit `1bc460b` via a dedup guard in `kokoro_wyoming.py`;
+verified on PC, Pixel satellite pending.
 
 Next: Step 3 (Chinese / Mandarin), then web search, music, and eventually
 moving to a dedicated always-on device.

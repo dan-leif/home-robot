@@ -175,7 +175,7 @@
   <h1>Home Robot</h1>
   <p class="subtitle">My own voice assistant — never asks follow-up questions.</p>
 
-  <div class="shelved">⏸️ <b>On the shelf for now</b> — picking it back up at the voice-satellite bugs below (slow + double-read).</div>
+  <div class="shelved">⏸️ <b>On the shelf for now</b> — picking it back up at the remaining voice-satellite issue (Pixel slowness) below.</div>
 
   <!-- ===== Working now ===== -->
   <div class="section-label">Working now — I can talk to it ✓</div>
@@ -246,7 +246,7 @@
     <div class="step next">
       <div class="step-num">⚠</div>
       <div class="step-icon">📱</div>
-      <div class="step-text">Voice satellite — my Pixel phone &nbsp;—&nbsp; works, but buggy<span>A spare Pixel 6a is now the room's mic &amp; speaker, talking to the Robot over Wi-Fi (no laptop mic, no browser workarounds). Two bugs to fix when I'm back: it's <b>slow to respond</b>, and it <b>reads each answer out twice</b>.</span></div>
+      <div class="step-text">Voice satellite — my Pixel phone &nbsp;—&nbsp; working (one bug open)<span>A spare Pixel 6a is the room's mic &amp; speaker over Wi-Fi. Double-speech fixed (2026-06-28, commit <code>1bc460b</code>): HA was sending two TTS requests to Kokoro — one Wyoming streaming and one classic one-shot — so every response played twice. A dedup guard in <code>kokoro_wyoming.py</code> silences the duplicate; verified on PC, Pixel pending. Remaining: it's still <b>slow to respond</b> from the phone (not yet diagnosed).</span></div>
     </div>
 
     <div class="step minor">
