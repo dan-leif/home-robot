@@ -169,15 +169,20 @@ goal — no follow-ups.
   round-trip latency and/or STT overhead. Verify the full stack is up first
   (Kokoro :10200, Ollama :11434, HA :8123) before investigating.
 
-### STT SPEED-UP BENCHMARK — DONE 2026-06-28 (benchmark only; live engine unchanged)
-- STT was the only slow stage (~3.4–3.8 s live; the Whisper add-on runs on the
-  **VM CPU** because VirtualBox can't pass through the RTX 4060). Benchmarked
-  alternatives end-to-end and produced a recommendation; did NOT change the live
-  engine (HA restored to baseline: add-on `base`/beam0, host port 10300
-  un-published). Full write-up + data: `whisper-bench/RESULTS.md`.
-- **Recommendation: host-GPU faster-whisper `small`, float16, beam 1 → ~0.37 s
-  warm** (clean), ~5.6× faster than the live in-VM `base` (~2.1 s) and the most
-  accurate option that stays under 1 s.
+### STT SPEED-UP — BENCHMARKED + WIRED IN LIVE 2026-06-28
+- STT was the only slow stage (~3.4–3.8 s live; the in-VM Whisper add-on runs on
+  the **VM CPU** because VirtualBox can't pass through the RTX 4060). Benchmarked
+  alternatives, then **wired the winner into the live "Robot" pipeline**. Full
+  write-up + data: `whisper-bench/RESULTS.md`.
+- **NOW LIVE: host-GPU faster-whisper `small`, float16, beam 1** (~0.37 s warm,
+  ~5.6× faster than the old in-VM `base` ~2.1 s; most accurate option under 1 s).
+  - Server: `whisper-gpu/run_whisper_gpu.ps1` on `tcp://0.0.0.0:10301` (CUDA).
+    Started/stopped by Start/Stop Robot (loads model into VRAM with the LLM).
+  - Firewall: inbound TCP 10301 allow-rule "Whisper GPU STT 10301".
+  - HA: Wyoming integration "faster-whisper GPU" (192.168.1.187:10301) →
+    `stt.faster_whisper_2`; "Robot" pipeline STT switched to it.
+  - Fallback: in-VM Whisper add-on left running (unused). Revert = set the
+    pipeline STT back to `stt.faster_whisper`.
 - **Key finding — VRAM ceiling:** with llama3.1:8b pinned in VRAM (~5.5/8 GB),
   only ~2.5 GB is free. `small` float16 (~0.5 GB) fits on the GPU; `medium`/
   `large-v3` don't and fall back to CPU (5–18 s). So `small` is the biggest model
@@ -185,10 +190,10 @@ goal — no follow-ups.
 - CPU can't reach <1 s: even host-CPU int8 (faster than the VM) only gets `tiny`
   to 0.54 s and `base` to 0.93 s; in-VM those would be ~2–3× slower.
 - The GPU/cuDNN path works on Windows (nvidia-cudnn-cu12 + cuBLAS wheels, their
-  `bin` dirs prepended to PATH in `run_whisper_gpu.ps1`).
-- **Deferred to a later session (needs an admin step):** firewall VM→host:10301,
-  add a Wyoming integration at host:10301, swap the "Robot" pipeline's STT to it.
-  See RESULTS.md "Recommendation & deferred wire-in".
+  `bin` dirs prepended to PATH in `whisper-gpu/run_whisper_gpu.ps1`).
+- Pending: a real **voice** acceptance test (talk to the Robot, confirm it works
+  and feels faster) — the wire-in is verified at every layer up to that. For
+  Chinese (Step 3) later, set the GPU launcher `-Language zh` (small is multilingual).
 
 ### PROJECT SHELVED (2026-06-27; STT benchmark added 2026-06-28)
 - Putting the project on the shelf for now. Resume point = (a) wire in the GPU STT

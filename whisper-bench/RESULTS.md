@@ -4,9 +4,29 @@
 **Goal:** get speech-to-text (STT) under **1 second** (it was ~3.4–3.8 s in the
 live HA pipeline) and characterise how transcription **quality** degrades as the
 model shrinks.
-**Scope of this run:** *benchmark + recommend only.* The live STT engine was
-**not** changed. HA was restored to its exact baseline afterwards (see "Restore"
-at the bottom). Wiring the winner into HA is a separate, later session.
+**Scope of this run:** benchmark + recommend, then **wire the winner in live**
+(the wire-in was originally deferred but the user gave the go-ahead the same day —
+see "UPDATE: wired in live" below).
+
+---
+
+## UPDATE: wired in live (2026-06-28)
+
+The recommendation below was implemented. The "Robot" Assist pipeline now uses
+the host-GPU `small`/float16/beam1 engine for speech-to-text:
+
+- **Production server:** `whisper-gpu/run_whisper_gpu.ps1` runs
+  `wyoming-faster-whisper` (small/float16/beam1, CUDA) on `tcp://0.0.0.0:10301`.
+  Folded into **Start Robot** / **Stop Robot** (starts/stops with the rest of the
+  stack; loads the model into VRAM alongside the pinned LLM).
+- **Firewall:** an inbound TCP **10301** allow-rule ("Whisper GPU STT 10301") was
+  added (admin step, run by the user) so the VM can reach the host server.
+- **HA:** a second Wyoming integration ("**faster-whisper GPU**",
+  `192.168.1.187:10301`) was added → entity `stt.faster_whisper_2`; the "Robot"
+  pipeline's STT was switched from `stt.faster_whisper` (in-VM) to it.
+- **Fallback:** the in-VM Whisper add-on is left running but unused — switch the
+  pipeline's STT back to `stt.faster_whisper` to revert.
+- Live server re-confirmed serving at ~0.4 s warm with correct proper nouns.
 
 ---
 
@@ -153,22 +173,21 @@ sufficient for the recommendation.
 
 ## Recommendation & deferred wire-in (for a later session)
 
-**Adopt host-GPU faster-whisper `small` float16, beam 1.** To make it live later
-(all deferred — these need an admin step and a change to the live pipeline):
+**Adopt host-GPU faster-whisper `small` float16, beam 1.** This was implemented —
+the steps that were taken (see "UPDATE: wired in live" at the top):
 
-1. **Run a host GPU Whisper server** (the `whisper-bench/run_whisper_gpu.ps1`
-   launcher already does this): `wyoming-faster-whisper` on `tcp://0.0.0.0:10301`,
+1. **Host GPU Whisper server** — `whisper-gpu/run_whisper_gpu.ps1` runs
+   `wyoming-faster-whisper` on `tcp://0.0.0.0:10301`,
    `--model small --compute-type float16 --device cuda --beam-size 1`, with the
-   nvidia cuBLAS/cuDNN `bin` dirs on PATH. Fold it into "Start Robot".
-2. **Open the firewall** for VM→host on port **10301** (admin step).
-3. **Add a Wyoming integration** in HA pointed at `host-ip:10301`, then **swap the
-   "Robot" pipeline's STT** from the in-VM add-on to the new GPU engine.
-4. (Optional) once STT moves to the GPU, the in-VM Whisper add-on can be disabled.
+   nvidia cuBLAS/cuDNN `bin` dirs on PATH. Folded into Start/Stop Robot.
+2. **Firewall** — inbound TCP **10301** allow-rule added (admin step).
+3. **HA** — Wyoming integration at `192.168.1.187:10301` ("faster-whisper GPU",
+   `stt.faster_whisper_2`); "Robot" pipeline STT switched to it.
+4. The in-VM Whisper add-on is left running as a fallback (not disabled).
 
-Caveat to revisit at wire-in: STT and the LLM now share the 8 GB GPU. `small`
-fits alongside the pinned LLM today; if you later run a bigger LLM, re-check free
-VRAM. On the future dedicated device, more VRAM would make `medium` (better
-accuracy) viable.
+Caveat now live: STT and the LLM share the 8 GB GPU. `small` fits alongside the
+pinned LLM today; if you later run a bigger LLM, re-check free VRAM. On the future
+dedicated device, more VRAM would make `medium` (better accuracy) viable.
 
 ---
 
@@ -180,8 +199,9 @@ accuracy) viable.
 - **Re-run a config:** start a server with `run_whisper_gpu.ps1` (or `run_sweep.ps1`
   for a batch), then `python bench.py --uri tcp://127.0.0.1:10301 --runs 5 --tag NAME`.
   `python analyze.py` prints the aggregated tables.
-- **HA was restored to baseline:** add-on back to `model=base`, `beam_size=0`,
-  host port 10300 **un-published** (`10300/tcp: null`), add-on restarted and
-  `started`; the `faster-whisper`, `piper`, and `kokoro` Wyoming integrations all
-  re-confirmed `loaded`. The host GPU test server was stopped. The live "Robot"
-  pipeline is unchanged.
+- **Benchmark cleanup:** after measuring, the in-VM add-on was returned to
+  `model=base`, `beam_size=0`, host port 10300 un-published. (The live STT was
+  then switched to the GPU engine per "UPDATE: wired in live" — the in-VM add-on
+  stays as the fallback.)
+- **To revert to the in-VM add-on:** in the "Robot" pipeline set STT back to
+  `stt.faster_whisper`. The GPU server/integration can then be stopped/removed.

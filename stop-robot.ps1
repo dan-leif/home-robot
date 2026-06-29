@@ -16,6 +16,7 @@
 $VBoxManage    = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 $VmName        = "HomeAssistant"
 $KokoroPort    = 10200
+$WhisperPort   = 10301        # GPU speech-to-text server
 $OllamaPort    = 11434
 $VmStopSeconds = 120        # how long to wait for the VM to shut down cleanly
 # ----------------------------------------------------------------------------
@@ -76,6 +77,14 @@ if (-not (Test-Path $VBoxManage)) {
 Write-Step "Kokoro (the voice / text-to-speech)"
 if (Stop-PortOwner $KokoroPort) {
     Write-Ok "Stopped (port $KokoroPort released)."
+} else {
+    Write-Skip "Not running."
+}
+
+# ----- 2b. Whisper GPU STT - frees its slice of VRAM ------------------------
+Write-Step "Whisper GPU (speech-to-text)"
+if (Stop-PortOwner $WhisperPort) {
+    Write-Ok "Stopped (port $WhisperPort released; model out of VRAM)."
 } else {
     Write-Skip "Not running."
 }
