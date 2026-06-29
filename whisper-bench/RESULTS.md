@@ -53,6 +53,21 @@ inflates every model's error **uniformly**, so:
 - For the genuine quality signal, look at **CER on the proper-noun sentences**
   (`CER_prop` below), which isn't affected by the number-format issue.
 
+**"True" WER (formatting canonicalised).** Re-scoring with OpenAI's Whisper text
+normalizer (so "five minutes" == "5 minutes", "three dollars and fifty cents" ==
+"$3.50") strips the artifact and leaves only real recognition errors. `analyze.py`
+prints this as `trueWER`; the candidates come out far lower and the spread widens:
+
+| Model (GPU, beam1) | Raw WER | **True WER** | Note |
+|---|---:|---:|---|
+| **small** | 19.4% | **3.2%** | best — nailed every proper noun + the year |
+| medium | 17.2% | 5.1% | one name miss (too slow here anyway) |
+| tiny | 22.3% | 6.6% | misses are "close" (Lichtenstein) |
+| base | 20.8% | 7.3% | worst — mangled Kyrgyzstan & Liechtenstein |
+
+So on clean audio every model is actually strong (true WER < 8%), but **`small` is
+~2× cleaner than `tiny`/`base`** on the words that matter — reinforcing the pick.
+
 ---
 
 ## Full results (sorted by latency)
