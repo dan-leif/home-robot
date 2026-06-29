@@ -191,9 +191,28 @@ goal — no follow-ups.
   to 0.54 s and `base` to 0.93 s; in-VM those would be ~2–3× slower.
 - The GPU/cuDNN path works on Windows (nvidia-cudnn-cu12 + cuBLAS wheels, their
   `bin` dirs prepended to PATH in `whisper-gpu/run_whisper_gpu.ps1`).
-- Pending: a real **voice** acceptance test (talk to the Robot, confirm it works
-  and feels faster) — the wire-in is verified at every layer up to that. For
-  Chinese (Step 3) later, set the GPU launcher `-Language zh` (small is multilingual).
+- **OPEN ISSUE — RESUME HERE (2026-06-28 night):** voice test surfaced two things.
+  (1) First mic attempts transcribed as "you" — that was the WRONG MIC selected
+  (HA recorded 15.000 s of silence; Whisper hallucinates "you" on silence). User
+  fixed the mic. (2) With real audio, STT then failed ("speech-to-text failed").
+  Server log: `RuntimeError: cudaErrorInvalidDevice: invalid device ordinal` — the
+  GPU Whisper server's CUDA context DIED mid-session (a GPU/driver reset, which
+  also crashed the user's Amazon Prime video). Root cause = **VRAM exhaustion under
+  concurrent GPU load** (pinned llama3.1:8b ~5.5 GB + Whisper + Chrome/Prime on an
+  8 GB card) → driver TDR reset. The server stays LISTENING on 10301 but every
+  transcription fails until restarted (zombie CUDA context).
+  - IMMEDIATE recovery: Stop Robot → Start Robot (fresh CUDA context).
+  - Don't run heavy GPU apps (games / GPU-heavy video) while the Robot runs — 8 GB
+    is shared and tight (this is the benchmark's VRAM-ceiling finding in real use).
+  - HARDENING to consider next session: (a) make `whisper-gpu/run_whisper_gpu.ps1`
+    auto-restart the server on a CUDA device-loss error (process doesn't crash on
+    its own — it just zombies, so needs detection→exit→relaunch); (b) reduce VRAM
+    pressure (drop `OLLAMA_KEEP_ALIVE=-1` and accept cold-start, or smaller LLM);
+    (c) the future dedicated device (more VRAM, not also gaming) removes this.
+  - The wire-in itself is correct — it transcribed real benchmark audio fine; this
+    is a runtime GPU-context loss, not a config error.
+- Still TODO once stable: a clean **voice** acceptance test. For Chinese (Step 3)
+  later, set the GPU launcher `-Language zh` (small is multilingual).
 
 ### PROJECT SHELVED (2026-06-27; STT benchmark added 2026-06-28)
 - Putting the project on the shelf for now. Resume point = (a) wire in the GPU STT
