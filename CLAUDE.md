@@ -169,9 +169,55 @@ goal — no follow-ups.
   round-trip latency and/or STT overhead. Verify the full stack is up first
   (Kokoro :10200, Ollama :11434, HA :8123) before investigating.
 
-### PROJECT SHELVED (2026-06-27)
-- Putting the project on the shelf for now. Resume point = investigate the Pixel
-  satellite slowness (double-speech is fixed — commit `1bc460b`), THEN: Step 3
-  Chinese, web search, music, move to a dedicated always-on device. All free/local.
+### STT SPEED-UP — BENCHMARKED + WIRED IN LIVE 2026-06-28
+- STT was the only slow stage (~3.4–3.8 s live; the in-VM Whisper add-on runs on
+  the **VM CPU** because VirtualBox can't pass through the RTX 4060). Benchmarked
+  alternatives, then **wired the winner into the live "Robot" pipeline**. Full
+  write-up + data: `whisper-bench/RESULTS.md`.
+- **NOW LIVE: host-GPU faster-whisper `small`, float16, beam 1** (~0.37 s warm,
+  ~5.6× faster than the old in-VM `base` ~2.1 s; most accurate option under 1 s).
+  - Server: `whisper-gpu/run_whisper_gpu.ps1` on `tcp://0.0.0.0:10301` (CUDA).
+    Started/stopped by Start/Stop Robot (loads model into VRAM with the LLM).
+  - Firewall: inbound TCP 10301 allow-rule "Whisper GPU STT 10301".
+  - HA: Wyoming integration "faster-whisper GPU" (192.168.1.187:10301) →
+    `stt.faster_whisper_2`; "Robot" pipeline STT switched to it.
+  - Fallback: in-VM Whisper add-on left running (unused). Revert = set the
+    pipeline STT back to `stt.faster_whisper`.
+- **Key finding — VRAM ceiling:** with llama3.1:8b pinned in VRAM (~5.5/8 GB),
+  only ~2.5 GB is free. `small` float16 (~0.5 GB) fits on the GPU; `medium`/
+  `large-v3` don't and fall back to CPU (5–18 s). So `small` is the biggest model
+  that stays fast on this 8 GB GPU alongside the LLM.
+- CPU can't reach <1 s: even host-CPU int8 (faster than the VM) only gets `tiny`
+  to 0.54 s and `base` to 0.93 s; in-VM those would be ~2–3× slower.
+- The GPU/cuDNN path works on Windows (nvidia-cudnn-cu12 + cuBLAS wheels, their
+  `bin` dirs prepended to PATH in `whisper-gpu/run_whisper_gpu.ps1`).
+- **OPEN ISSUE — RESUME HERE (2026-06-28 night):** voice test surfaced two things.
+  (1) First mic attempts transcribed as "you" — that was the WRONG MIC selected
+  (HA recorded 15.000 s of silence; Whisper hallucinates "you" on silence). User
+  fixed the mic. (2) With real audio, STT then failed ("speech-to-text failed").
+  Server log: `RuntimeError: cudaErrorInvalidDevice: invalid device ordinal` — the
+  GPU Whisper server's CUDA context DIED mid-session (a GPU/driver reset, which
+  also crashed the user's Amazon Prime video). Root cause = **VRAM exhaustion under
+  concurrent GPU load** (pinned llama3.1:8b ~5.5 GB + Whisper + Chrome/Prime on an
+  8 GB card) → driver TDR reset. The server stays LISTENING on 10301 but every
+  transcription fails until restarted (zombie CUDA context).
+  - IMMEDIATE recovery: Stop Robot → Start Robot (fresh CUDA context).
+  - Don't run heavy GPU apps (games / GPU-heavy video) while the Robot runs — 8 GB
+    is shared and tight (this is the benchmark's VRAM-ceiling finding in real use).
+  - HARDENING to consider next session: (a) make `whisper-gpu/run_whisper_gpu.ps1`
+    auto-restart the server on a CUDA device-loss error (process doesn't crash on
+    its own — it just zombies, so needs detection→exit→relaunch); (b) reduce VRAM
+    pressure (drop `OLLAMA_KEEP_ALIVE=-1` and accept cold-start, or smaller LLM);
+    (c) the future dedicated device (more VRAM, not also gaming) removes this.
+  - The wire-in itself is correct — it transcribed real benchmark audio fine; this
+    is a runtime GPU-context loss, not a config error.
+- Still TODO once stable: a clean **voice** acceptance test. For Chinese (Step 3)
+  later, set the GPU launcher `-Language zh` (small is multilingual).
+
+### PROJECT SHELVED (2026-06-27; STT benchmark added 2026-06-28)
+- Putting the project on the shelf for now. Resume point = (a) wire in the GPU STT
+  winner per `whisper-bench/RESULTS.md` (admin step), and/or (b) investigate the
+  Pixel satellite slowness (double-speech is fixed — commit `1bc460b`), THEN:
+  Step 3 Chinese, web search, music, move to a dedicated always-on device. Free/local.
 - To bring the stack back up: double-click the "Start Robot" desktop shortcut
   (starts Ollama → Kokoro → HA VM; idempotent). "Stop Robot" tears it down.
