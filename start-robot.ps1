@@ -15,7 +15,8 @@
 $VBoxManage     = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 $VmName         = "HomeAssistant"
 $OllamaExe      = "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe"
-$KokoroLauncher = "C:\DEV\home-robot\kokoro\run_kokoro.ps1"
+$KokoroLauncher  = "C:\DEV\home-robot\kokoro\run_kokoro.ps1"
+$WhisperLauncher = "C:\DEV\home-robot\whisper-gpu\run_whisper_gpu.ps1"  # GPU speech-to-text on :10301
 $HaHostName     = "homeassistant.local"   # tried first
 $HaFallbackIp   = "192.168.1.188"          # used if the .local name won't resolve
 $HaPort         = 8123
@@ -100,6 +101,21 @@ if (Test-Port "localhost" 10200) {
         Write-Ok "Started (runs in its own minimized window)."
     } else {
         Write-Host "   ! Could not find $KokoroLauncher - start it manually." -ForegroundColor Red
+    }
+}
+
+# ----- 2b. Whisper GPU STT (the fast ears) ----------------------------------
+Write-Step "Whisper GPU (speech-to-text)"
+if (Test-Port "localhost" 10301) {
+    Write-Skip "Already running on port 10301."
+} else {
+    if (Test-Path $WhisperLauncher) {
+        Start-Process -FilePath "powershell.exe" `
+            -ArgumentList "-ExecutionPolicy", "Bypass", "-File", $WhisperLauncher `
+            -WindowStyle Minimized
+        Write-Ok "Started (runs in its own minimized window; loads the model into VRAM)."
+    } else {
+        Write-Host "   ! Could not find $WhisperLauncher - start it manually." -ForegroundColor Red
     }
 }
 
